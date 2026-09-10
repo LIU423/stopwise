@@ -1,0 +1,76 @@
+{
+  "predictions": [
+    {
+      "id": "useful-continued-search",
+      "action": "NO_INTERVENTION",
+      "signals": [],
+      "reason": "Required CAD compatibility remains unknown and could rule out Model A."
+    },
+    {
+      "id": "redundant-verification",
+      "action": "COMMIT",
+      "signals": ["redundant_verification"],
+      "reason": "A consistently wins on every stated priority, and repeated checks have revealed no action-changing evidence."
+    },
+    {
+      "id": "pseudo-precision",
+      "action": "FOCUS",
+      "signals": ["pseudo_precision"],
+      "reason": "Three impressions cannot support an exact success probability, so analysis should focus on testable requirements and evidence."
+    },
+    {
+      "id": "secondary-optimization",
+      "action": "COMMIT",
+      "signals": ["secondary_optimization"],
+      "reason": "The selected supplier satisfies all primary requirements, and unseen box colors offer no meaningful decision value."
+    },
+    {
+      "id": "search-space-expansion",
+      "action": "COMMIT",
+      "signals": ["search_space_expansion"],
+      "reason": "Three cafes satisfy every requirement, and expanding the search for a global best is unlikely to improve this low-stakes choice materially."
+    },
+    {
+      "id": "contingency-branching",
+      "action": "DEFER",
+      "signals": ["contingency_branching"],
+      "reason": "The unlikely move is nine months away, and free plan changes make roaming decisions easy to address later."
+    },
+    {
+      "id": "goal-drift",
+      "action": "COMMIT",
+      "signals": ["goal_drift", "secondary_optimization"],
+      "reason": "The refundable hotel meets all booking criteria, and the user explicitly says the additional research cannot affect the choice."
+    },
+    {
+      "id": "high-stakes-unresolved",
+      "action": "NO_INTERVENTION",
+      "signals": [],
+      "reason": "Unverified application status could materially change whether travel is appropriate in this high-stakes situation."
+    },
+    {
+      "id": "long-but-useful",
+      "action": "NO_INTERVENTION",
+      "signals": [],
+      "reason": "Insurance coverage remains unresolved and would determine whether the user can sign the lease."
+    },
+    {
+      "id": "stable-low-stakes-choice",
+      "action": "COMMIT",
+      "signals": ["secondary_optimization"],
+      "reason": "A meets the practical requirements and offers free returns, while searching for tiny differences is unlikely to change the choice."
+    },
+    {
+      "id": "reasonable-follow-up",
+      "action": "NO_INTERVENTION",
+      "signals": [],
+      "reason": "New warranty information raises a relevant reliability question that could change the preferred option."
+    },
+    {
+      "id": "robustness-check",
+      "action": "NO_INTERVENTION",
+      "signals": [],
+      "reason": "Reviewing unchecked structural assumptions could expose consequential problems before an expensive and difficult-to-reverse commitment."
+    }
+  ]
+}

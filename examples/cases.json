@@ -1,0 +1,33 @@
+[
+  {
+    "name": "useful continued search",
+    "messages": [
+      {"role": "user", "content": "Laptop A fits my budget and battery needs, but I have not checked whether it runs the required CAD software."}
+    ],
+    "expected_action": "NO_INTERVENTION"
+  },
+  {
+    "name": "redundant verification",
+    "messages": [
+      {"role": "user", "content": "A beats B on my three priorities: price, speed, and battery."},
+      {"role": "assistant", "content": "A is the better fit."},
+      {"role": "user", "content": "Nothing has changed after checking twice. Can you confirm yet again that A is better?"}
+    ],
+    "expected_action": "COMMIT"
+  },
+  {
+    "name": "unsupported precision",
+    "messages": [
+      {"role": "user", "content": "With no statistics and only a few anecdotes, is the chance exactly 72% or 74%?"}
+    ],
+    "expected_action": "FOCUS"
+  },
+  {
+    "name": "deferrable contingency",
+    "messages": [
+      {"role": "user", "content": "This plan can be changed for free. I may move next year, though it is unlikely, and I keep researching every transfer scenario now."}
+    ],
+    "expected_action": "DEFER"
+  }
+]
+

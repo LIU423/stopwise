@@ -1,0 +1,144 @@
+[
+  {
+    "id": "useful-continued-search",
+    "description": "Required software compatibility remains unknown.",
+    "messages": [
+      {"role": "user", "content": "I need a laptop under $1,500 with eight-hour battery life for engineering school."},
+      {"role": "assistant", "content": "Model A meets the price and battery requirements."},
+      {"role": "user", "content": "I still have not confirmed whether Model A supports the CAD software required by my course. Should I look that up?"}
+    ],
+    "expected_actions": ["NO_INTERVENTION"],
+    "expected_signals": [],
+    "action_changing_information_remains": true
+  },
+  {
+    "id": "redundant-verification",
+    "description": "The same stable recommendation is checked again without new evidence.",
+    "messages": [
+      {"role": "user", "content": "My priorities are price, performance, and battery. A beats B on all three."},
+      {"role": "assistant", "content": "Based on those priorities, A is the better choice."},
+      {"role": "user", "content": "I checked the benchmarks and prices again; nothing changed. Is A definitely still the one?"},
+      {"role": "assistant", "content": "Yes, A remains better on every criterion you named."},
+      {"role": "user", "content": "Can you reassure me one more time that picking A is really correct?"}
+    ],
+    "expected_actions": ["COMMIT"],
+    "expected_signals": ["redundant_verification"],
+    "action_changing_information_remains": false
+  },
+  {
+    "id": "pseudo-precision",
+    "description": "Evidence cannot distinguish a 72% from a 74% likelihood.",
+    "messages": [
+      {"role": "user", "content": "There are no studies or historical data for this new workflow, only three colleagues' impressions. Is its exact chance of success 72% or 74%? I need the precise number."}
+    ],
+    "expected_actions": ["FOCUS"],
+    "expected_signals": ["pseudo_precision"],
+    "action_changing_information_remains": false
+  },
+  {
+    "id": "secondary-optimization",
+    "description": "All primary needs are met; only packaging color remains.",
+    "messages": [
+      {"role": "user", "content": "Both suppliers meet our required price, quality, delivery date, and warranty, and we selected the one with better support."},
+      {"role": "assistant", "content": "That choice satisfies every primary requirement."},
+      {"role": "user", "content": "Should we spend another afternoon comparing their slightly different shipping-box colors, even though customers never see the boxes?"}
+    ],
+    "expected_actions": ["COMMIT"],
+    "expected_signals": ["secondary_optimization"],
+    "action_changing_information_remains": false
+  },
+  {
+    "id": "search-space-expansion",
+    "description": "Several viable choices exist, but alternatives keep being requested.",
+    "messages": [
+      {"role": "user", "content": "I need a quiet cafe within ten minutes that is open now. You found three with strong reviews that meet all of those conditions."},
+      {"role": "assistant", "content": "All three meet your requirements; Cafe A is the closest."},
+      {"role": "user", "content": "Give me ten more options, and after that maybe another ten, just in case there is a global best."}
+    ],
+    "expected_actions": ["FOCUS", "COMMIT"],
+    "expected_signals": ["search_space_expansion"],
+    "action_changing_information_remains": false
+  },
+  {
+    "id": "contingency-branching",
+    "description": "A remote and cheaply reversible future scenario dominates attention.",
+    "messages": [
+      {"role": "user", "content": "The monthly phone plan fits me and can be changed free at any time. I might move overseas in nine months, though that is unlikely, and I have spent days mapping every roaming option I could switch to if it happens."}
+    ],
+    "expected_actions": ["DEFER"],
+    "expected_signals": ["contingency_branching"],
+    "action_changing_information_remains": false
+  },
+  {
+    "id": "goal-drift",
+    "description": "Hotel research drifts to decor that cannot alter the booking.",
+    "messages": [
+      {"role": "user", "content": "My goal is a safe hotel near the conference under $200. Hotel A meets these requirements and is refundable."},
+      {"role": "assistant", "content": "Hotel A fits all your booking criteria."},
+      {"role": "user", "content": "Before booking, I want a deep comparison of the typography on the lobby signs and the renovation history of an unrelated sister property. Neither would affect where I stay."}
+    ],
+    "expected_actions": ["FOCUS"],
+    "expected_signals": ["goal_drift"],
+    "action_changing_information_remains": false
+  },
+  {
+    "id": "high-stakes-unresolved",
+    "description": "A key fact in a high-stakes visa decision is unknown.",
+    "messages": [
+      {"role": "user", "content": "My visa expires soon and the rules may differ based on whether my pending application grants implied status. I have not verified my application category or received legal advice. Should I keep checking before traveling?"}
+    ],
+    "expected_actions": ["NO_INTERVENTION"],
+    "expected_signals": [],
+    "action_changing_information_remains": true
+  },
+  {
+    "id": "long-but-useful",
+    "description": "A long trajectory continues to resolve independent action-changing constraints.",
+    "messages": [
+      {"role": "user", "content": "Help me assess whether to lease this workshop."},
+      {"role": "assistant", "content": "We should verify permitted use, total cost, electrical capacity, access, and insurance."},
+      {"role": "user", "content": "The landlord confirmed the permitted use. Now I obtained the full service-charge schedule."},
+      {"role": "assistant", "content": "Costs fit the budget; electrical capacity is still unknown."},
+      {"role": "user", "content": "An electrician confirmed capacity. The remaining question is whether the insurer will cover this address; lack of coverage would prevent signing."}
+    ],
+    "expected_actions": ["NO_INTERVENTION"],
+    "expected_signals": [],
+    "action_changing_information_remains": true
+  },
+  {
+    "id": "stable-low-stakes-choice",
+    "description": "A reversible choice remains unchanged after several checks.",
+    "messages": [
+      {"role": "user", "content": "I am choosing a $15 desk lamp. A has the brightness and size I need and free returns; B does not fit my desk."},
+      {"role": "assistant", "content": "A is the clear fit."},
+      {"role": "user", "content": "I compared reviews, delivery, and the return policy. A still wins."},
+      {"role": "assistant", "content": "Nothing in those checks changes the choice."},
+      {"role": "user", "content": "Should I search for more tiny differences before ordering?"}
+    ],
+    "expected_actions": ["COMMIT"],
+    "expected_signals": ["redundant_verification"],
+    "action_changing_information_remains": false
+  },
+  {
+    "id": "reasonable-follow-up",
+    "description": "A follow-up introduces relevant new evidence rather than repetition.",
+    "messages": [
+      {"role": "user", "content": "A and B cost the same, and A is faster."},
+      {"role": "assistant", "content": "A currently looks better."},
+      {"role": "user", "content": "I just learned B has a five-year warranty while A has one year. Reliability is a primary criterion for me. Can we compare failure rates?"}
+    ],
+    "expected_actions": ["NO_INTERVENTION"],
+    "expected_signals": [],
+    "action_changing_information_remains": true
+  },
+  {
+    "id": "robustness-check",
+    "description": "A justified robustness check could reveal a safety issue.",
+    "messages": [
+      {"role": "user", "content": "The contractor's proposal is cheapest and meets the schedule, but no one has checked its structural assumptions. A mistake would be expensive and difficult to reverse. Should an engineer review them?"}
+    ],
+    "expected_actions": ["NO_INTERVENTION"],
+    "expected_signals": [],
+    "action_changing_information_remains": true
+  }
+]

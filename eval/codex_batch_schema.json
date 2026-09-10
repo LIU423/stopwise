@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "predictions": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "action": {
+            "type": "string",
+            "enum": ["NO_INTERVENTION", "FOCUS", "COMMIT", "DEFER"]
+          },
+          "signals": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "search_space_expansion",
+                "redundant_verification",
+                "pseudo_precision",
+                "secondary_optimization",
+                "contingency_branching",
+                "goal_drift"
+              ]
+            }
+          },
+          "reason": {"type": "string"}
+        },
+        "required": ["id", "action", "signals", "reason"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["predictions"],
+  "additionalProperties": false
+}
+
