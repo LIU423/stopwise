@@ -1,4 +1,4 @@
-"""Benchmark StopWise classifications across Codex models and effort levels."""
+"""Run the legacy exploratory StopWise policy-classification matrix."""
 
 from __future__ import annotations
 
@@ -14,10 +14,10 @@ from evaluate import score
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CASES_PATH = ROOT / "eval/cases.json"
-PROMPT_PATH = ROOT / "prompts/stopwise_system.md"
-SCHEMA_PATH = ROOT / "eval/codex_batch_schema.json"
-DEFAULT_OUTPUT = ROOT / "eval/results/codex_matrix"
+CASES_PATH = ROOT / "eval/legacy/codex_matrix/cases.json"
+PROMPT_PATH = ROOT / "prompts/analyzer_system.md"
+SCHEMA_PATH = ROOT / "eval/legacy/codex_matrix/codex_batch_schema.json"
+DEFAULT_OUTPUT = ROOT / "eval/legacy/codex_matrix"
 
 MODELS = ("gpt-5.6-sol", "gpt-6-astra", "gpt-5.6-luna", "gpt-5.6-terra")
 EFFORTS = {"high": "high", "light": "low"}
@@ -178,9 +178,16 @@ def main() -> None:
             )
             summary["metrics"] = {
                 "action_accuracy": metrics.action_accuracy,
-                "premature_intervention_rate": metrics.premature_intervention_rate,
+                "false_intervention_rate": metrics.false_intervention_rate,
+                "premature_commit_rate": metrics.premature_commit_rate,
+                "unsafe_defer_rate": metrics.unsafe_defer_rate,
                 "missed_intervention_rate": metrics.missed_intervention_rate,
+                "no_intervention_precision": metrics.no_intervention_precision,
+                "no_intervention_recall": metrics.no_intervention_recall,
                 "signal_exact_match": signal_matches / len(cases),
+                "signal_precision": metrics.signal_precision,
+                "signal_recall": metrics.signal_recall,
+                "signal_f1": metrics.signal_f1,
             }
         else:
             summary["error"] = result["error"]

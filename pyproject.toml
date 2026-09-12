@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "stopwise"
-version = "0.1.0"
-description = "A lightweight metacognitive middleware for LLM conversations"
+version = "0.2.0"
+description = "A lightweight metacognitive stopping and intervention policy for LLM conversations"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
@@ -26,7 +26,12 @@ dev = ["pytest>=8"]
 where = ["src"]
 
 [tool.setuptools.data-files]
-"share/stopwise/prompts" = ["prompts/stopwise_system.md"]
+"share/stopwise/prompts" = [
+  "prompts/analyzer_system.md",
+  "prompts/custom_instruction.md",
+  "prompts/custom_instruction_compact.md",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]

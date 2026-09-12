@@ -1,10 +1,9 @@
 cff-version: 1.2.0
 message: "If you use StopWise in research, please cite this software."
-title: "StopWise: Lightweight metacognitive middleware for LLM conversations"
+title: "StopWise: A metacognitive stopping and intervention policy for LLM conversations"
 type: software
-version: 0.1.0
-date-released: 2026-09-10
+version: 0.2.0
+date-released: 2026-09-12
 authors:
   - name: "StopWise contributors"
 license: MIT
-

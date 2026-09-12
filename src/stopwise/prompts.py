@@ -1,38 +1,53 @@
-"""Prompt loading with an installed-package fallback."""
+"""Load StopWise prompt assets from a checkout or installed package."""
 
 from pathlib import Path
 import sysconfig
 
 
-_PROMPT_NAME = "stopwise_system.md"
+_PROMPT_NAMES = {
+    "analyzer": "analyzer_system.md",
+    "custom_instruction": "custom_instruction.md",
+    "custom_instruction_compact": "custom_instruction_compact.md",
+}
 
 
-def _candidate_paths() -> tuple[Path, ...]:
-    source_tree = Path(__file__).resolve().parents[2] / "prompts" / _PROMPT_NAME
+def _candidate_paths(prompt_name: str) -> tuple[Path, ...]:
+    source_tree = Path(__file__).resolve().parents[2] / "prompts" / prompt_name
     installed = (
         Path(sysconfig.get_path("data"))
         / "share"
         / "stopwise"
         / "prompts"
-        / _PROMPT_NAME
+        / prompt_name
     )
     return source_tree, installed
 
 
-def load_system_prompt(path: str | Path | None = None) -> str:
-    """Load the StopWise system prompt.
+def load_prompt(kind: str = "analyzer", path: str | Path | None = None) -> str:
+    """Load one of the canonical StopWise prompts.
 
-    A custom path is useful for prompt experiments. By default the source-tree
-    prompt is preferred, followed by the copy installed with the package.
+    ``kind`` is ignored when ``path`` is supplied. Source-tree assets are
+    preferred, followed by copies installed as package data.
     """
 
     if path is not None:
         return Path(path).read_text(encoding="utf-8").strip()
 
-    for candidate in _candidate_paths():
+    try:
+        prompt_name = _PROMPT_NAMES[kind]
+    except KeyError as exc:
+        choices = ", ".join(sorted(_PROMPT_NAMES))
+        raise ValueError(f"unknown prompt kind {kind!r}; choose from: {choices}") from exc
+
+    for candidate in _candidate_paths(prompt_name):
         if candidate.is_file():
             return candidate.read_text(encoding="utf-8").strip()
 
-    searched = ", ".join(str(path) for path in _candidate_paths())
-    raise FileNotFoundError(f"StopWise system prompt not found; searched: {searched}")
+    searched = ", ".join(str(candidate) for candidate in _candidate_paths(prompt_name))
+    raise FileNotFoundError(f"StopWise prompt not found; searched: {searched}")
 
+
+def load_system_prompt(path: str | Path | None = None) -> str:
+    """Load the structured analyzer prompt (backwards-compatible alias)."""
+
+    return load_prompt("analyzer", path)

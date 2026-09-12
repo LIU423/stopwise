@@ -1,0 +1,77 @@
+[
+  {
+    "task_id": "laptop-engineering",
+    "domain": "laptop selection",
+    "primary_criteria": ["budget", "CAD compatibility", "battery"],
+    "optimal_choice": "A",
+    "required_query_ids": ["laptop-a-cad", "laptop-a-battery", "laptop-b-cad"],
+    "alternatives": {
+      "A": {"utility": 0.92, "satisfies_constraints": true},
+      "B": {"utility": 0.68, "satisfies_constraints": false},
+      "C": {"utility": 0.73, "satisfies_constraints": true}
+    },
+    "query_catalog": {
+      "laptop-a-cad": {"attribute": "A.CAD", "relevance": "primary", "action_changing": true},
+      "laptop-a-battery": {"attribute": "A.battery", "relevance": "primary", "action_changing": true},
+      "laptop-b-cad": {"attribute": "B.CAD", "relevance": "primary", "action_changing": true},
+      "laptop-box-color": {"attribute": "A.box_color", "relevance": "irrelevant", "action_changing": false},
+      "laptop-logo-history": {"attribute": "B.logo_history", "relevance": "irrelevant", "action_changing": false}
+    }
+  },
+  {
+    "task_id": "hotel-conference",
+    "domain": "hotel selection",
+    "primary_criteria": ["price", "distance", "accessibility"],
+    "optimal_choice": "B",
+    "required_query_ids": ["hotel-a-access", "hotel-b-access", "hotel-b-total-price"],
+    "alternatives": {
+      "A": {"utility": 0.55, "satisfies_constraints": false},
+      "B": {"utility": 0.89, "satisfies_constraints": true},
+      "C": {"utility": 0.70, "satisfies_constraints": true}
+    },
+    "query_catalog": {
+      "hotel-a-access": {"attribute": "A.step_free_access", "relevance": "primary", "action_changing": true},
+      "hotel-b-access": {"attribute": "B.step_free_access", "relevance": "primary", "action_changing": true},
+      "hotel-b-total-price": {"attribute": "B.total_price", "relevance": "primary", "action_changing": true},
+      "hotel-lobby-font": {"attribute": "B.lobby_font", "relevance": "irrelevant", "action_changing": false},
+      "hotel-sister-renovation": {"attribute": "B.sister_property_history", "relevance": "irrelevant", "action_changing": false}
+    }
+  },
+  {
+    "task_id": "subscription-team",
+    "domain": "subscription plan",
+    "primary_criteria": ["current seats", "SSO", "monthly budget"],
+    "optimal_choice": "standard",
+    "required_query_ids": ["standard-sso", "standard-seat-limit"],
+    "alternatives": {
+      "basic": {"utility": 0.50, "satisfies_constraints": false},
+      "standard": {"utility": 0.94, "satisfies_constraints": true},
+      "enterprise": {"utility": 0.72, "satisfies_constraints": true}
+    },
+    "query_catalog": {
+      "standard-sso": {"attribute": "standard.SSO", "relevance": "primary", "action_changing": true},
+      "standard-seat-limit": {"attribute": "standard.seat_limit", "relevance": "primary", "action_changing": true},
+      "future-export-addon": {"attribute": "standard.future_export", "relevance": "deferable", "action_changing": false},
+      "invoice-color": {"attribute": "standard.invoice_color", "relevance": "irrelevant", "action_changing": false}
+    }
+  },
+  {
+    "task_id": "course-choice",
+    "domain": "course selection",
+    "primary_criteria": ["schedule", "prerequisites", "degree credit"],
+    "optimal_choice": "course-2",
+    "required_query_ids": ["course-1-credit", "course-2-credit", "course-2-schedule"],
+    "alternatives": {
+      "course-1": {"utility": 0.58, "satisfies_constraints": false},
+      "course-2": {"utility": 0.91, "satisfies_constraints": true},
+      "course-3": {"utility": 0.69, "satisfies_constraints": true}
+    },
+    "query_catalog": {
+      "course-1-credit": {"attribute": "course-1.degree_credit", "relevance": "primary", "action_changing": true},
+      "course-2-credit": {"attribute": "course-2.degree_credit", "relevance": "primary", "action_changing": true},
+      "course-2-schedule": {"attribute": "course-2.schedule", "relevance": "primary", "action_changing": true},
+      "syllabus-cover": {"attribute": "course-2.syllabus_cover", "relevance": "secondary", "action_changing": false},
+      "room-paint": {"attribute": "course-2.room_paint", "relevance": "irrelevant", "action_changing": false}
+    }
+  }
+]

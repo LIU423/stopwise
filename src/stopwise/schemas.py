@@ -28,7 +28,7 @@ class Signal(StrEnum):
 
 
 class StopWiseResult(BaseModel):
-    """A decision-state analysis and optional metacognitive intervention."""
+    """A structured policy decision and optional metacognitive intervention."""
 
     model_config = ConfigDict(extra="forbid", use_enum_values=False)
 
@@ -47,10 +47,19 @@ class StopWiseResult(BaseModel):
 
     @model_validator(mode="after")
     def enforce_policy_invariants(self) -> "StopWiseResult":
+        unknown_resolved = set(self.resolved_primary_criteria) - set(
+            self.primary_criteria
+        )
+        if unknown_resolved:
+            raise ValueError(
+                "resolved_primary_criteria must be a subset of primary_criteria"
+            )
         if self.action == Action.COMMIT and self.unresolved_action_changing_information:
             raise ValueError(
                 "COMMIT is invalid while action-changing information remains"
             )
         if self.action != Action.NO_INTERVENTION and not self.message.strip():
             raise ValueError("intervention actions require a message")
+        if self.action == Action.NO_INTERVENTION and self.message:
+            raise ValueError("NO_INTERVENTION requires an empty message")
         return self

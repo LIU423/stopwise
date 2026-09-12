@@ -8,11 +8,14 @@ from .analyzer import (
     analyze_conversation,
 )
 from .schemas import Action, Level, Signal, StopWiseResult
+from .prompts import load_prompt, load_system_prompt
 
 __all__ = [
     "Action",
     "CompletionGenerator",
     "Level",
+    "load_prompt",
+    "load_system_prompt",
     "Signal",
     "StopWise",
     "StopWiseError",
@@ -21,4 +24,4 @@ __all__ = [
     "analyze_conversation",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

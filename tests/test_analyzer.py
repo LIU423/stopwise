@@ -5,7 +5,7 @@ import pytest
 from pydantic import ValidationError
 
 from stopwise import Action, StopWise, StopWiseError, StopWiseResult
-from stopwise.prompts import load_system_prompt
+from stopwise.prompts import load_prompt, load_system_prompt
 
 
 VALID_JSON = """{
@@ -42,7 +42,7 @@ def test_responses_api_and_validation():
 
     assert result.action == Action.COMMIT
     assert responses.kwargs["text"]["format"]["strict"] is True
-    assert responses.kwargs["instructions"].startswith("You are StopWise")
+    assert responses.kwargs["instructions"].startswith("You are the analyzer for StopWise")
 
 
 def test_json_schema_requires_every_output_field():
@@ -126,6 +126,14 @@ def test_commit_is_rejected_when_key_information_remains():
         StopWiseResult.model_validate(data)
 
 
+def test_resolved_criteria_must_be_primary_criteria():
+    data = StopWiseResult.model_validate_json(VALID_JSON).model_dump(mode="json")
+    data["resolved_primary_criteria"].append("box color")
+
+    with pytest.raises(ValidationError, match="must be a subset"):
+        StopWiseResult.model_validate(data)
+
+
 def test_no_intervention_allows_silence():
     data = StopWiseResult.model_validate_json(VALID_JSON).model_dump(mode="json")
     data.update(
@@ -136,6 +144,30 @@ def test_no_intervention_allows_silence():
 
     result = StopWiseResult.model_validate(data)
     assert result.message == ""
+
+
+def test_no_intervention_rejects_visible_meta_message():
+    data = StopWiseResult.model_validate_json(VALID_JSON).model_dump(mode="json")
+    data.update(
+        action="NO_INTERVENTION",
+        message="Here is an unnecessary nudge.",
+        unresolved_action_changing_information=True,
+    )
+
+    with pytest.raises(ValidationError, match="requires an empty message"):
+        StopWiseResult.model_validate(data)
+
+
+@pytest.mark.parametrize("action", ["FOCUS", "DEFER"])
+def test_focus_and_defer_allow_unresolved_information(action):
+    data = StopWiseResult.model_validate_json(VALID_JSON).model_dump(mode="json")
+    data.update(
+        action=action,
+        message="Continue the main analysis, but narrow or defer this branch.",
+        unresolved_action_changing_information=True,
+    )
+
+    assert StopWiseResult.model_validate(data).action.value == action
 
 
 def test_invalid_model_output_has_clear_error():
@@ -159,6 +191,23 @@ def test_invalid_messages_are_rejected(messages):
 
 def test_canonical_prompt_loads():
     prompt = load_system_prompt()
-    assert "`NO_INTERVENTION` is a first-class action" in prompt
+    assert "`NO_INTERVENTION`" in prompt
+    assert "This is not a stopping action" in prompt
     assert "Return one JSON object only" in prompt
     assert "Stop overthinking" not in prompt
+
+
+def test_all_deployment_prompts_load():
+    analyzer = load_prompt("analyzer")
+    direct = load_prompt("custom_instruction")
+    compact = load_prompt("custom_instruction_compact")
+
+    assert "Return one JSON object only" in analyzer
+    assert "does not expose JSON" not in analyzer
+    assert "Answer each substantive user question normally" in direct
+    assert "say nothing meta" in compact
+
+
+def test_unknown_prompt_kind_is_rejected():
+    with pytest.raises(ValueError, match="unknown prompt kind"):
+        load_prompt("not-a-prompt")
