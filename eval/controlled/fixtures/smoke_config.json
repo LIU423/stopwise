@@ -1,0 +1,25 @@
+{
+  "experiment_id": "stopwise-offline-smoke-fixture-v1",
+  "task_file": "../tasks.json",
+  "task_ids": ["laptop-engineering", "travel-route"],
+  "replicates": 1,
+  "base_seed": 424242,
+  "max_information_turns": 16,
+  "model": {
+    "provider": "offline-fixture",
+    "base_model": "deterministic-assistant",
+    "exact_model_version": "deterministic-assistant-v1.0.0",
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "max_output_tokens": 1024,
+    "context_budget": 8192,
+    "tool_permissions": ["controlled_attribute_lookup"],
+    "parameters": {}
+  },
+  "base_system_prompt": "Help the user make the stated decision using only information revealed by the controlled environment. Answer the requested attribute, do not invent hidden values, and preserve the user's authority to choose.",
+  "user_simulator_id": "deterministic-v1",
+  "user_simulator_version": "1.0.0",
+  "assistant_callback_id": "deterministic-fixture-v1",
+  "bootstrap_samples": 200,
+  "confidence_level": 0.95
+}

@@ -30,7 +30,7 @@ The stored 12-case Codex matrix is retained under [`eval/legacy/codex_matrix`](.
 
 ## Controlled end-to-end effectiveness evaluation
 
-The scaffold in [`eval/controlled`](../eval/controlled) is designed to compare:
+The framework in [`eval/controlled`](../eval/controlled) is designed to compare:
 
 ```text
 Baseline assistant
@@ -38,9 +38,11 @@ vs
 same base assistant + StopWise
 ```
 
-The base model, decoding settings, task order, information environment, and user simulator should be identical across conditions. Structured tasks reveal attributes incrementally and record which queries were required, action-changing, secondary, or irrelevant.
+The base model and exact version, decoding settings, tool permissions, context and turn budgets, task/replicate seeds, information environment, and user simulator must be identical across paired conditions. The primary treatment appends the direct-chat StopWise prompt; middleware is a separate experimental condition because it adds calls, cost, latency, and failure modes.
 
-End-to-end outcomes include optimal-choice accuracy, constraint satisfaction, utility, regret, information-seeking turns, token use, redundant queries, premature commits, and Action-Changing Rate (ACR): action-changing queries divided by all additional queries.
+Structured tasks reveal attributes incrementally. The dynamic oracle compares pre/post feasible and possible-optimal sets, constraint status, recommendation, ranking, utility-margin state, and information sufficiency; a query is not action-changing merely because it concerns a primary criterion. End-to-end outcomes include optimal-choice accuracy, constraint satisfaction, utility, regret, information-seeking and total turns, token use, redundant queries, premature commits, unsafe defers, false/missed interventions, FOCUS continuation, silence precision/recall, and Action-Changing Rate (ACR): dynamically action-changing new queries divided by all new information queries.
+
+The paired report includes condition means, medians, distributions, paired differences, bootstrap intervals, paired binary comparisons, effect sizes, and task-domain strata. Raw JSONL and derived summaries are separate, and scoring replays raw query IDs against the versioned task file.
 
 The desired empirical pattern is not merely fewer turns:
 
@@ -50,4 +52,6 @@ decision quality is approximately preserved or improves
 premature commit remains low
 ```
 
-The scaffold can validate and score paired logs, but no controlled LLM experiment is included as a reported result. Until such an experiment is run with adequate replication and analysis, claims that StopWise reduces redundant turns or preserves decision quality remain unmeasured.
+The repository includes deterministic smoke validation only. It can validate and score paired logs, but no controlled LLM experiment is included as a reported result. Until such an experiment is run with adequate replication and analysis, claims that StopWise reduces redundant turns or preserves decision quality remain unmeasured. See the full [controlled protocol](../eval/controlled/PROTOCOL.md).
+
+**尚未形成 StopWise 端到端有效性证据。**

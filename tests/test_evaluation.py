@@ -2,10 +2,14 @@ import json
 from pathlib import Path
 import runpy
 
+from eval.controlled.conditions import DeterministicAssistantCallback
+from eval.controlled.runner import load_tasks, run_paired_experiment
+from eval.controlled.schemas import ExperimentConfig
+from eval.controlled.score import score_episode
+
 
 ROOT = Path(__file__).resolve().parents[1]
 POLICY = runpy.run_path(str(ROOT / "eval/policy/evaluate.py"))
-CONTROLLED = runpy.run_path(str(ROOT / "eval/controlled/score.py"))
 
 
 def test_contrastive_cases_and_perfect_metrics():
@@ -99,28 +103,19 @@ def test_premature_commit_is_distinct_from_focus():
 
 
 def test_controlled_scorer_tracks_quality_cost_and_acr():
-    tasks = CONTROLLED["load_tasks"](ROOT / "eval/controlled/tasks.json")
-    run = {
-        "task_id": "laptop-engineering",
-        "condition": "stopwise",
-        "query_ids": [
-            "laptop-a-cad",
-            "laptop-a-battery",
-            "laptop-b-cad",
-            "laptop-box-color",
-        ],
-        "chosen_alternative": "A",
-        "prompt_tokens": 100,
-        "completion_tokens": 50,
-    }
-
-    result = CONTROLLED["score_run"](tasks[run["task_id"]], run)
+    task = load_tasks(ROOT / "eval/controlled/tasks.json")[0]
+    config = ExperimentConfig.model_validate_json(
+        (ROOT / "eval/controlled/example_config.json").read_text(encoding="utf-8")
+    ).model_copy(update={"replicates": 1})
+    logs = run_paired_experiment(config, [task], DeterministicAssistantCallback())
+    log = next(item for item in logs if item.condition == "stopwise")
+    result = score_episode(task, log)
     assert result.optimal_choice is True
     assert result.constraint_satisfied is True
-    assert result.premature_commit is False
-    assert result.redundant_queries == 1
-    assert result.action_changing_rate == 0.75
-    assert result.token_usage == 150
+    assert result.premature_commit_count == 0
+    assert result.redundant_query_count > 0
+    assert 0 < result.action_changing_rate < 1
+    assert result.total_tokens > 0
 
 
 def test_deployment_assets_exist_and_are_nonempty():

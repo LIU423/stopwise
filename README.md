@@ -208,9 +208,9 @@ The older model/effort matrix remains as [legacy exploratory policy-classificati
 
 ### End-to-end effectiveness evaluation
 
-[`eval/controlled/`](eval/controlled/) provides tasks, a paired-log protocol, and runnable scoring for baseline assistant versus the same assistant plus StopWise. It measures decision quality, utility/regret, constraint satisfaction, information turns, tokens, redundant queries, premature commits, and Action-Changing Rate.
+[`eval/controlled/`](eval/controlled/) now provides six interactive task domains, a dynamic information-value oracle, deterministic and provider-neutral simulator/callback interfaces, a paired runner, replayable raw logs, safety metrics, and bootstrap summaries for baseline assistant versus the same assistant plus StopWise. The checked-in offline run is a deterministic smoke fixture, not a model study.
 
-That controlled experiment has **not** been run here. The desired result is not simply fewer turns:
+A live controlled model experiment has **not** been run here. The desired result is not simply fewer turns:
 
 ```text
 redundant search ↓
@@ -239,7 +239,7 @@ Currently implemented:
 - provider-light Python analyzer middleware with Pydantic validation;
 - a reusable Skill representation;
 - contrastive policy regression cases and action-specific metrics;
-- controlled-evaluation tasks and scoring infrastructure.
+- controlled-evaluation tasks, dynamic oracle, paired runner, replay scoring, and deterministic smoke infrastructure.
 
 Preliminary evidence is limited to policy classification on handcrafted cases. No claim is made that StopWise currently reduces redundant turns, preserves decision quality, or improves user outcomes. Those are hypotheses for controlled end-to-end evaluation.
 

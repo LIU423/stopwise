@@ -1,77 +1,259 @@
 [
   {
     "task_id": "laptop-engineering",
+    "task_version": "2.0.0",
     "domain": "laptop selection",
-    "primary_criteria": ["budget", "CAD compatibility", "battery"],
-    "optimal_choice": "A",
-    "required_query_ids": ["laptop-a-cad", "laptop-a-battery", "laptop-b-cad"],
-    "alternatives": {
-      "A": {"utility": 0.92, "satisfies_constraints": true},
-      "B": {"utility": 0.68, "satisfies_constraints": false},
-      "C": {"utility": 0.73, "satisfies_constraints": true}
+    "title": "Engineering laptop with CAD and battery constraints",
+    "scenario": "Choose one laptop for field engineering. CAD compatibility, price, and battery life are primary; weight is secondary.",
+    "primary_criteria": ["price", "cad", "battery"],
+    "secondary_criteria": ["weight"],
+    "criteria": {
+      "price": {"label": "price USD", "weight": 0.25, "primary": true, "value_type": "number", "direction": "min", "min_value": 800, "max_value": 2000, "hard_constraint": {"op": "le", "value": 1600}},
+      "cad": {"label": "required CAD compatibility", "weight": 0.30, "primary": true, "value_type": "boolean", "desired_value": true, "hard_constraint": {"op": "eq", "value": true}},
+      "battery": {"label": "measured battery hours", "weight": 0.25, "primary": true, "value_type": "number", "direction": "max", "min_value": 4, "max_value": 14, "hard_constraint": {"op": "ge", "value": 8}},
+      "weight": {"label": "carry weight kg", "weight": 0.20, "primary": false, "value_type": "number", "direction": "min", "min_value": 1, "max_value": 3}
     },
-    "query_catalog": {
-      "laptop-a-cad": {"attribute": "A.CAD", "relevance": "primary", "action_changing": true},
-      "laptop-a-battery": {"attribute": "A.battery", "relevance": "primary", "action_changing": true},
-      "laptop-b-cad": {"attribute": "B.CAD", "relevance": "primary", "action_changing": true},
-      "laptop-box-color": {"attribute": "A.box_color", "relevance": "irrelevant", "action_changing": false},
-      "laptop-logo-history": {"attribute": "B.logo_history", "relevance": "irrelevant", "action_changing": false}
-    }
+    "alternatives": {
+      "A": {"label": "Forge 14", "attributes": {"price": 1200, "cad": true, "battery": 11, "weight": 1.6, "box_color": "gray", "dock_2028": "unknown", "dock_country_list": "global", "review_decimal": 8.73}},
+      "B": {"label": "Velocity 13", "attributes": {"price": 1000, "cad": false, "battery": 13, "weight": 1.4}},
+      "C": {"label": "Rugged 15", "attributes": {"price": 1450, "cad": true, "battery": 9, "weight": 2.0}}
+    },
+    "initially_visible": ["A.price", "B.price", "C.price"],
+    "queries": {
+      "lap-box-color": {"alternative_id": "A", "attribute_id": "box_color", "relevance": "irrelevant", "rationale": "Compare packaging color even though it is not used after purchase."},
+      "lap-a-cad": {"alternative_id": "A", "attribute_id": "cad", "relevance": "primary", "rationale": "Verify CAD compatibility for A."},
+      "lap-a-battery": {"alternative_id": "A", "attribute_id": "battery", "relevance": "robustness", "rationale": "Use an independent measured battery test for A.", "measurement_basis": "controlled battery benchmark"},
+      "lap-a-weight": {"alternative_id": "A", "attribute_id": "weight", "relevance": "secondary", "rationale": "Check A carry weight."},
+      "lap-future-dock": {"alternative_id": "A", "attribute_id": "dock_2028", "relevance": "deferable", "branch_id": "future-dock", "rationale": "Investigate a possible dock need in 2028."},
+      "lap-future-countries": {"alternative_id": "A", "attribute_id": "dock_country_list", "relevance": "deferable", "branch_id": "future-dock", "rationale": "Map every future country-specific dock variant."},
+      "lap-b-cad": {"alternative_id": "B", "attribute_id": "cad", "relevance": "primary", "rationale": "Verify CAD compatibility for B."},
+      "lap-b-battery": {"alternative_id": "B", "attribute_id": "battery", "relevance": "primary", "rationale": "Check measured battery life for B."},
+      "lap-b-weight": {"alternative_id": "B", "attribute_id": "weight", "relevance": "secondary", "rationale": "Check B carry weight."},
+      "lap-c-cad": {"alternative_id": "C", "attribute_id": "cad", "relevance": "primary", "rationale": "Verify CAD compatibility for C."},
+      "lap-c-battery": {"alternative_id": "C", "attribute_id": "battery", "relevance": "primary", "rationale": "Check measured battery life for C."},
+      "lap-c-weight": {"alternative_id": "C", "attribute_id": "weight", "relevance": "secondary", "rationale": "Check C carry weight."},
+      "lap-review-decimal": {"alternative_id": "A", "attribute_id": "review_decimal", "relevance": "irrelevant", "rationale": "Request a hundredth-point review score from three anecdotes.", "measurement_basis": "three anecdotal comments"}
+    },
+    "branches": {"future-dock": {"label": "possible dock need in 2028", "deferable": true, "required_now": false}},
+    "simulator_query_plan": ["lap-box-color", "lap-a-cad", "lap-a-battery", "lap-future-dock", "lap-future-countries", "lap-a-weight", "lap-b-cad", "lap-b-battery", "lap-b-weight", "lap-c-cad", "lap-c-battery", "lap-c-weight", "lap-c-battery", "lap-review-decimal"],
+    "decision_margin": 0.05,
+    "satisfactory_utility": 0.70,
+    "tags": ["focus-then-valid-search", "robustness-check", "repeated-confirmation", "pseudo-precision", "future-defer"],
+    "oracle_annotation": {"source": "dynamic", "version": "dynamic-oracle-v1", "reviewed_by": [], "notes": "Computed from revealed values and declared utility/constraint bounds; no static action_changing labels."}
   },
   {
     "task_id": "hotel-conference",
+    "task_version": "2.0.0",
     "domain": "hotel selection",
-    "primary_criteria": ["price", "distance", "accessibility"],
-    "optimal_choice": "B",
-    "required_query_ids": ["hotel-a-access", "hotel-b-access", "hotel-b-total-price"],
-    "alternatives": {
-      "A": {"utility": 0.55, "satisfies_constraints": false},
-      "B": {"utility": 0.89, "satisfies_constraints": true},
-      "C": {"utility": 0.70, "satisfies_constraints": true}
+    "title": "Accessible conference hotel",
+    "scenario": "Choose a hotel for a conference. Total price, distance, and step-free access are primary; refundability is secondary.",
+    "primary_criteria": ["price", "distance", "access"],
+    "secondary_criteria": ["refundable"],
+    "criteria": {
+      "price": {"label": "total nightly price", "weight": 0.25, "primary": true, "value_type": "number", "direction": "min", "min_value": 100, "max_value": 300, "hard_constraint": {"op": "le", "value": 240}},
+      "distance": {"label": "distance km", "weight": 0.20, "primary": true, "value_type": "number", "direction": "min", "min_value": 0, "max_value": 5},
+      "access": {"label": "verified step-free access", "weight": 0.35, "primary": true, "value_type": "boolean", "desired_value": true, "hard_constraint": {"op": "eq", "value": true}},
+      "refundable": {"label": "refundable rate", "weight": 0.20, "primary": false, "value_type": "boolean", "desired_value": true}
     },
-    "query_catalog": {
-      "hotel-a-access": {"attribute": "A.step_free_access", "relevance": "primary", "action_changing": true},
-      "hotel-b-access": {"attribute": "B.step_free_access", "relevance": "primary", "action_changing": true},
-      "hotel-b-total-price": {"attribute": "B.total_price", "relevance": "primary", "action_changing": true},
-      "hotel-lobby-font": {"attribute": "B.lobby_font", "relevance": "irrelevant", "action_changing": false},
-      "hotel-sister-renovation": {"attribute": "B.sister_property_history", "relevance": "irrelevant", "action_changing": false}
-    }
+    "alternatives": {
+      "A": {"label": "Central House", "attributes": {"price": 180, "distance": 1.0, "access": false, "refundable": true, "lobby_font": "serif", "spa_2029": "planned", "spa_menu": "seasonal"}},
+      "B": {"label": "Access Inn", "attributes": {"price": 220, "distance": 1.5, "access": true, "refundable": true}},
+      "C": {"label": "Riverside", "attributes": {"price": 190, "distance": 3.0, "access": true, "refundable": false}}
+    },
+    "initially_visible": ["A.price", "B.price", "C.price"],
+    "queries": {
+      "hotel-font": {"alternative_id": "A", "attribute_id": "lobby_font", "relevance": "irrelevant", "rationale": "Research lobby sign typography that cannot affect the stay."},
+      "hotel-a-access": {"alternative_id": "A", "attribute_id": "access", "relevance": "primary", "branch_id": "access-now", "rationale": "Verify A step-free access before booking."},
+      "hotel-a-distance": {"alternative_id": "A", "attribute_id": "distance", "relevance": "primary", "rationale": "Measure A distance to the venue."},
+      "hotel-a-refund": {"alternative_id": "A", "attribute_id": "refundable", "relevance": "secondary", "rationale": "Check A refundability."},
+      "hotel-spa-future": {"alternative_id": "A", "attribute_id": "spa_2029", "relevance": "deferable", "branch_id": "future-spa", "rationale": "Investigate a spa renovation years after this trip."},
+      "hotel-spa-menu": {"alternative_id": "A", "attribute_id": "spa_menu", "relevance": "deferable", "branch_id": "future-spa", "rationale": "Compare a future seasonal spa menu."},
+      "hotel-b-access": {"alternative_id": "B", "attribute_id": "access", "relevance": "robustness", "branch_id": "access-now", "rationale": "Confirm B access with the property's accessibility desk."},
+      "hotel-b-distance": {"alternative_id": "B", "attribute_id": "distance", "relevance": "primary", "rationale": "Measure B distance to the venue."},
+      "hotel-b-refund": {"alternative_id": "B", "attribute_id": "refundable", "relevance": "secondary", "rationale": "Check B refundability."},
+      "hotel-c-access": {"alternative_id": "C", "attribute_id": "access", "relevance": "primary", "rationale": "Verify C step-free access."},
+      "hotel-c-distance": {"alternative_id": "C", "attribute_id": "distance", "relevance": "primary", "rationale": "Measure C distance to the venue."},
+      "hotel-c-refund": {"alternative_id": "C", "attribute_id": "refundable", "relevance": "secondary", "rationale": "Check C refundability."}
+    },
+    "branches": {
+      "access-now": {"label": "accessibility required for this booking", "deferable": false, "required_now": true},
+      "future-spa": {"label": "distant spa branch", "deferable": true, "required_now": false}
+    },
+    "simulator_query_plan": ["hotel-font", "hotel-a-access", "hotel-a-distance", "hotel-a-refund", "hotel-spa-future", "hotel-spa-menu", "hotel-b-access", "hotel-b-distance", "hotel-b-refund", "hotel-c-access", "hotel-c-distance", "hotel-c-refund", "hotel-c-distance", "hotel-font"],
+    "decision_margin": 0.05,
+    "satisfactory_utility": 0.70,
+    "tags": ["irrelevant-similarity", "current-risk-branch", "future-defer", "repeat"],
+    "oracle_annotation": {"source": "dynamic", "version": "dynamic-oracle-v1", "reviewed_by": [], "notes": "Current accessibility and future spa branches are deliberately contrasted."}
   },
   {
     "task_id": "subscription-team",
+    "task_version": "2.0.0",
     "domain": "subscription plan",
-    "primary_criteria": ["current seats", "SSO", "monthly budget"],
-    "optimal_choice": "standard",
-    "required_query_ids": ["standard-sso", "standard-seat-limit"],
-    "alternatives": {
-      "basic": {"utility": 0.50, "satisfies_constraints": false},
-      "standard": {"utility": 0.94, "satisfies_constraints": true},
-      "enterprise": {"utility": 0.72, "satisfies_constraints": true}
+    "title": "Team subscription with SSO and seat constraints",
+    "scenario": "Choose a monthly team plan. Budget, SSO, and seat capacity are primary; current export support is secondary.",
+    "primary_criteria": ["price", "sso", "seats"],
+    "secondary_criteria": ["export"],
+    "criteria": {
+      "price": {"label": "monthly price", "weight": 0.25, "primary": true, "value_type": "number", "direction": "min", "min_value": 20, "max_value": 100, "hard_constraint": {"op": "le", "value": 70}},
+      "sso": {"label": "SSO support", "weight": 0.30, "primary": true, "value_type": "boolean", "desired_value": true, "hard_constraint": {"op": "eq", "value": true}},
+      "seats": {"label": "included seats", "weight": 0.30, "primary": true, "value_type": "number", "direction": "max", "min_value": 5, "max_value": 50, "hard_constraint": {"op": "ge", "value": 20}},
+      "export": {"label": "current export support", "weight": 0.15, "primary": false, "value_type": "boolean", "desired_value": true}
     },
-    "query_catalog": {
-      "standard-sso": {"attribute": "standard.SSO", "relevance": "primary", "action_changing": true},
-      "standard-seat-limit": {"attribute": "standard.seat_limit", "relevance": "primary", "action_changing": true},
-      "future-export-addon": {"attribute": "standard.future_export", "relevance": "deferable", "action_changing": false},
-      "invoice-color": {"attribute": "standard.invoice_color", "relevance": "irrelevant", "action_changing": false}
-    }
+    "alternatives": {
+      "basic": {"label": "Basic", "attributes": {"price": 30, "sso": false, "seats": 10, "export": true, "invoice_color": "blue", "ai_addon_2028": "possible", "ai_addon_regions": 12}},
+      "standard": {"label": "Standard", "attributes": {"price": 55, "sso": true, "seats": 30, "export": true}},
+      "enterprise": {"label": "Enterprise", "attributes": {"price": 75, "sso": true, "seats": 50, "export": true}}
+    },
+    "initially_visible": ["basic.price", "standard.price", "enterprise.price"],
+    "queries": {
+      "sub-invoice-color": {"alternative_id": "basic", "attribute_id": "invoice_color", "relevance": "irrelevant", "rationale": "Compare invoice colors with no workflow impact."},
+      "sub-basic-sso": {"alternative_id": "basic", "attribute_id": "sso", "relevance": "primary", "rationale": "Verify Basic SSO."},
+      "sub-basic-seats": {"alternative_id": "basic", "attribute_id": "seats", "relevance": "primary", "rationale": "Verify Basic seat capacity."},
+      "sub-basic-export": {"alternative_id": "basic", "attribute_id": "export", "relevance": "secondary", "rationale": "Check Basic export support."},
+      "sub-ai-future": {"alternative_id": "basic", "attribute_id": "ai_addon_2028", "relevance": "deferable", "branch_id": "future-ai", "rationale": "Investigate a reversible AI add-on in 2028."},
+      "sub-ai-regions": {"alternative_id": "basic", "attribute_id": "ai_addon_regions", "relevance": "deferable", "branch_id": "future-ai", "rationale": "Map all hypothetical add-on regions."},
+      "sub-standard-sso": {"alternative_id": "standard", "attribute_id": "sso", "relevance": "robustness", "rationale": "Confirm Standard SSO in current documentation."},
+      "sub-standard-seats": {"alternative_id": "standard", "attribute_id": "seats", "relevance": "primary", "rationale": "Verify Standard seats."},
+      "sub-standard-export": {"alternative_id": "standard", "attribute_id": "export", "relevance": "secondary", "rationale": "Check Standard export support."},
+      "sub-enterprise-sso": {"alternative_id": "enterprise", "attribute_id": "sso", "relevance": "primary", "rationale": "Verify Enterprise SSO."},
+      "sub-enterprise-seats": {"alternative_id": "enterprise", "attribute_id": "seats", "relevance": "primary", "rationale": "Verify Enterprise seats."},
+      "sub-enterprise-export": {"alternative_id": "enterprise", "attribute_id": "export", "relevance": "secondary", "rationale": "Check Enterprise export support."}
+    },
+    "branches": {"future-ai": {"label": "reversible future add-on", "deferable": true, "required_now": false}},
+    "simulator_query_plan": ["sub-invoice-color", "sub-basic-sso", "sub-basic-seats", "sub-basic-export", "sub-ai-future", "sub-ai-regions", "sub-standard-sso", "sub-standard-seats", "sub-standard-export", "sub-enterprise-sso", "sub-enterprise-seats", "sub-enterprise-export", "sub-enterprise-seats", "sub-invoice-color"],
+    "decision_margin": 0.05,
+    "satisfactory_utility": 0.70,
+    "tags": ["defer-branch-only", "focus-continues", "hard-constraint-change"],
+    "oracle_annotation": {"source": "dynamic", "version": "dynamic-oracle-v1", "reviewed_by": [], "notes": "The over-budget enterprise plan tests feasible-set updates despite high raw utility."}
   },
   {
     "task_id": "course-choice",
+    "task_version": "2.0.0",
     "domain": "course selection",
-    "primary_criteria": ["schedule", "prerequisites", "degree credit"],
-    "optimal_choice": "course-2",
-    "required_query_ids": ["course-1-credit", "course-2-credit", "course-2-schedule"],
-    "alternatives": {
-      "course-1": {"utility": 0.58, "satisfies_constraints": false},
-      "course-2": {"utility": 0.91, "satisfies_constraints": true},
-      "course-3": {"utility": 0.69, "satisfies_constraints": true}
+    "title": "Degree-credit course with schedule constraints",
+    "scenario": "Choose one course. Schedule, degree credit, and prerequisite eligibility are primary; teaching format is secondary.",
+    "primary_criteria": ["schedule", "credit", "eligible"],
+    "secondary_criteria": ["teaching"],
+    "criteria": {
+      "schedule": {"label": "schedule fit", "weight": 0.25, "primary": true, "value_type": "categorical", "value_scores": {"morning": 1.0, "evening": 0.8, "online": 0.6}},
+      "credit": {"label": "counts for degree", "weight": 0.30, "primary": true, "value_type": "boolean", "desired_value": true, "hard_constraint": {"op": "eq", "value": true}},
+      "eligible": {"label": "prerequisites met", "weight": 0.25, "primary": true, "value_type": "boolean", "desired_value": true, "hard_constraint": {"op": "eq", "value": true}},
+      "teaching": {"label": "teaching format", "weight": 0.20, "primary": false, "value_type": "categorical", "value_scores": {"excellent": 1.0, "good": 0.7, "adequate": 0.4}}
     },
-    "query_catalog": {
-      "course-1-credit": {"attribute": "course-1.degree_credit", "relevance": "primary", "action_changing": true},
-      "course-2-credit": {"attribute": "course-2.degree_credit", "relevance": "primary", "action_changing": true},
-      "course-2-schedule": {"attribute": "course-2.schedule", "relevance": "primary", "action_changing": true},
-      "syllabus-cover": {"attribute": "course-2.syllabus_cover", "relevance": "secondary", "action_changing": false},
-      "room-paint": {"attribute": "course-2.room_paint", "relevance": "irrelevant", "action_changing": false}
-    }
+    "alternatives": {
+      "course-1": {"label": "Algorithms Studio", "attributes": {"schedule": "morning", "credit": false, "eligible": true, "teaching": "excellent", "cover_art": "green", "alumni_event_2030": "unknown", "alumni_cities": 30}},
+      "course-2": {"label": "Applied Systems", "attributes": {"schedule": "evening", "credit": true, "eligible": true, "teaching": "good"}},
+      "course-3": {"label": "Remote Theory", "attributes": {"schedule": "online", "credit": true, "eligible": false, "teaching": "excellent"}}
+    },
+    "initially_visible": ["course-1.schedule", "course-2.schedule", "course-3.schedule"],
+    "queries": {
+      "course-cover": {"alternative_id": "course-1", "attribute_id": "cover_art", "relevance": "irrelevant", "rationale": "Compare syllabus cover art."},
+      "course-1-credit": {"alternative_id": "course-1", "attribute_id": "credit", "relevance": "primary", "rationale": "Verify degree credit for course 1."},
+      "course-1-eligible": {"alternative_id": "course-1", "attribute_id": "eligible", "relevance": "primary", "rationale": "Verify course 1 prerequisites."},
+      "course-1-teaching": {"alternative_id": "course-1", "attribute_id": "teaching", "relevance": "secondary", "rationale": "Check course 1 teaching format."},
+      "course-alumni-future": {"alternative_id": "course-1", "attribute_id": "alumni_event_2030", "relevance": "deferable", "branch_id": "future-alumni", "rationale": "Investigate a hypothetical 2030 alumni event."},
+      "course-alumni-cities": {"alternative_id": "course-1", "attribute_id": "alumni_cities", "relevance": "deferable", "branch_id": "future-alumni", "rationale": "Map every possible alumni event city."},
+      "course-2-credit": {"alternative_id": "course-2", "attribute_id": "credit", "relevance": "robustness", "rationale": "Confirm current catalog credit for course 2."},
+      "course-2-eligible": {"alternative_id": "course-2", "attribute_id": "eligible", "relevance": "primary", "rationale": "Verify course 2 prerequisites."},
+      "course-2-teaching": {"alternative_id": "course-2", "attribute_id": "teaching", "relevance": "secondary", "rationale": "Check course 2 teaching format."},
+      "course-3-credit": {"alternative_id": "course-3", "attribute_id": "credit", "relevance": "primary", "rationale": "Verify course 3 credit."},
+      "course-3-eligible": {"alternative_id": "course-3", "attribute_id": "eligible", "relevance": "primary", "rationale": "Verify course 3 prerequisites."},
+      "course-3-teaching": {"alternative_id": "course-3", "attribute_id": "teaching", "relevance": "secondary", "rationale": "Check course 3 teaching format."}
+    },
+    "branches": {"future-alumni": {"label": "distant alumni contingency", "deferable": true, "required_now": false}},
+    "simulator_query_plan": ["course-cover", "course-1-credit", "course-1-eligible", "course-1-teaching", "course-alumni-future", "course-alumni-cities", "course-2-credit", "course-2-eligible", "course-2-teaching", "course-3-credit", "course-3-eligible", "course-3-teaching", "course-3-eligible", "course-cover"],
+    "decision_margin": 0.05,
+    "satisfactory_utility": 0.75,
+    "tags": ["required-information", "repeat", "defer-side-branch"],
+    "oracle_annotation": {"source": "dynamic", "version": "dynamic-oracle-v1", "reviewed_by": [], "notes": "Two attractive courses fail different hard constraints; the passing course must be confirmed."}
+  },
+  {
+    "task_id": "travel-route",
+    "task_version": "2.0.0",
+    "domain": "travel plan",
+    "title": "Reversible trip route with a current visa risk",
+    "scenario": "Choose a route for next month's trip. Cost, duration, and current legal entry eligibility are primary; cancellation flexibility is secondary.",
+    "primary_criteria": ["cost", "duration", "visa"],
+    "secondary_criteria": ["cancellation"],
+    "criteria": {
+      "cost": {"label": "total cost", "weight": 0.25, "primary": true, "value_type": "number", "direction": "min", "min_value": 500, "max_value": 2000, "hard_constraint": {"op": "le", "value": 1500}},
+      "duration": {"label": "travel hours", "weight": 0.20, "primary": true, "value_type": "number", "direction": "min", "min_value": 4, "max_value": 20},
+      "visa": {"label": "verified legal eligibility", "weight": 0.35, "primary": true, "value_type": "boolean", "desired_value": true, "hard_constraint": {"op": "eq", "value": true}},
+      "cancellation": {"label": "cancellation flexibility", "weight": 0.20, "primary": false, "value_type": "categorical", "value_scores": {"flexible": 1.0, "partial": 0.5, "none": 0.0}}
+    },
+    "alternatives": {
+      "route-a": {"label": "Direct flight", "attributes": {"cost": 1100, "duration": 8, "visa": true, "cancellation": "flexible", "meal_logo": "round", "side_trip_2028": "possible", "side_trip_maps": 45}},
+      "route-b": {"label": "Transit fare", "attributes": {"cost": 800, "duration": 16, "visa": false, "cancellation": "flexible"}},
+      "route-c": {"label": "Rail and ferry", "attributes": {"cost": 1300, "duration": 6, "visa": true, "cancellation": "none"}}
+    },
+    "initially_visible": ["route-a.cost", "route-b.cost", "route-c.cost"],
+    "queries": {
+      "travel-logo": {"alternative_id": "route-a", "attribute_id": "meal_logo", "relevance": "irrelevant", "rationale": "Compare meal-card logos."},
+      "travel-a-visa": {"alternative_id": "route-a", "attribute_id": "visa", "relevance": "robustness", "branch_id": "visa-now", "rationale": "Verify current legal eligibility for route A with an authoritative source."},
+      "travel-a-duration": {"alternative_id": "route-a", "attribute_id": "duration", "relevance": "primary", "rationale": "Check route A duration."},
+      "travel-a-cancel": {"alternative_id": "route-a", "attribute_id": "cancellation", "relevance": "secondary", "rationale": "Check route A cancellation terms."},
+      "travel-side-future": {"alternative_id": "route-a", "attribute_id": "side_trip_2028", "relevance": "deferable", "branch_id": "future-side-trip", "rationale": "Investigate a possible side trip years later."},
+      "travel-side-maps": {"alternative_id": "route-a", "attribute_id": "side_trip_maps", "relevance": "deferable", "branch_id": "future-side-trip", "rationale": "Collect every map for that distant side trip."},
+      "travel-b-visa": {"alternative_id": "route-b", "attribute_id": "visa", "relevance": "primary", "branch_id": "visa-now", "rationale": "Verify route B transit eligibility now."},
+      "travel-b-duration": {"alternative_id": "route-b", "attribute_id": "duration", "relevance": "primary", "rationale": "Check route B duration."},
+      "travel-b-cancel": {"alternative_id": "route-b", "attribute_id": "cancellation", "relevance": "secondary", "rationale": "Check route B cancellation terms."},
+      "travel-c-visa": {"alternative_id": "route-c", "attribute_id": "visa", "relevance": "primary", "branch_id": "visa-now", "rationale": "Verify route C entry eligibility now."},
+      "travel-c-duration": {"alternative_id": "route-c", "attribute_id": "duration", "relevance": "primary", "rationale": "Check route C duration."},
+      "travel-c-cancel": {"alternative_id": "route-c", "attribute_id": "cancellation", "relevance": "secondary", "rationale": "Check route C cancellation terms."}
+    },
+    "branches": {
+      "visa-now": {"label": "current legal eligibility", "deferable": false, "required_now": true},
+      "future-side-trip": {"label": "distant optional side trip", "deferable": true, "required_now": false}
+    },
+    "simulator_query_plan": ["travel-logo", "travel-a-visa", "travel-a-duration", "travel-a-cancel", "travel-side-future", "travel-side-maps", "travel-b-visa", "travel-b-duration", "travel-b-cancel", "travel-c-visa", "travel-c-duration", "travel-c-cancel", "travel-c-duration", "travel-logo"],
+    "decision_margin": 0.05,
+    "satisfactory_utility": 0.75,
+    "tags": ["current-risk", "reliable-measurement", "defer-future", "focus-continues"],
+    "oracle_annotation": {"source": "dynamic", "version": "dynamic-oracle-v1", "reviewed_by": [], "notes": "The current legal branch must never be deferred; the distant side trip may be."}
+  },
+  {
+    "task_id": "device-procurement",
+    "task_version": "2.0.0",
+    "domain": "device procurement",
+    "title": "Certified scanner procurement",
+    "scenario": "Choose a production scanner. Unit cost, certification, and throughput are primary; warranty length is secondary.",
+    "primary_criteria": ["cost", "certification", "throughput"],
+    "secondary_criteria": ["warranty"],
+    "criteria": {
+      "cost": {"label": "unit cost", "weight": 0.20, "primary": true, "value_type": "number", "direction": "min", "min_value": 100, "max_value": 500, "hard_constraint": {"op": "le", "value": 400}},
+      "certification": {"label": "required certification", "weight": 0.35, "primary": true, "value_type": "boolean", "desired_value": true, "hard_constraint": {"op": "eq", "value": true}},
+      "throughput": {"label": "measured pages per minute", "weight": 0.30, "primary": true, "value_type": "number", "direction": "max", "min_value": 50, "max_value": 200, "hard_constraint": {"op": "ge", "value": 100}},
+      "warranty": {"label": "warranty years", "weight": 0.15, "primary": false, "value_type": "number", "direction": "max", "min_value": 1, "max_value": 5}
+    },
+    "alternatives": {
+      "scanner-a": {"label": "LineScan A", "attributes": {"cost": 300, "certification": true, "throughput": 160, "warranty": 4, "crate_pattern": "diagonal", "factory_2029": "optional", "factory_layouts": 18, "failure_decimal": 0.0047}},
+      "scanner-b": {"label": "Rapid B", "attributes": {"cost": 250, "certification": false, "throughput": 190, "warranty": 5}},
+      "scanner-c": {"label": "Steady C", "attributes": {"cost": 350, "certification": true, "throughput": 120, "warranty": 2}}
+    },
+    "initially_visible": ["scanner-a.cost", "scanner-b.cost", "scanner-c.cost"],
+    "queries": {
+      "device-crate": {"alternative_id": "scanner-a", "attribute_id": "crate_pattern", "relevance": "irrelevant", "rationale": "Compare shipping-crate patterns unseen by operators."},
+      "device-a-cert": {"alternative_id": "scanner-a", "attribute_id": "certification", "relevance": "robustness", "branch_id": "cert-now", "rationale": "Verify A certification in the registry."},
+      "device-a-throughput": {"alternative_id": "scanner-a", "attribute_id": "throughput", "relevance": "robustness", "rationale": "Run the planned throughput measurement.", "measurement_basis": "repeatable production benchmark"},
+      "device-a-warranty": {"alternative_id": "scanner-a", "attribute_id": "warranty", "relevance": "secondary", "rationale": "Check A warranty."},
+      "device-factory-future": {"alternative_id": "scanner-a", "attribute_id": "factory_2029", "relevance": "deferable", "branch_id": "future-factory", "rationale": "Plan an optional factory expansion years ahead."},
+      "device-factory-layouts": {"alternative_id": "scanner-a", "attribute_id": "factory_layouts", "relevance": "deferable", "branch_id": "future-factory", "rationale": "Compare every future factory layout."},
+      "device-b-cert": {"alternative_id": "scanner-b", "attribute_id": "certification", "relevance": "primary", "branch_id": "cert-now", "rationale": "Verify B required certification."},
+      "device-b-throughput": {"alternative_id": "scanner-b", "attribute_id": "throughput", "relevance": "primary", "rationale": "Measure B throughput."},
+      "device-b-warranty": {"alternative_id": "scanner-b", "attribute_id": "warranty", "relevance": "secondary", "rationale": "Check B warranty."},
+      "device-c-cert": {"alternative_id": "scanner-c", "attribute_id": "certification", "relevance": "primary", "branch_id": "cert-now", "rationale": "Verify C certification."},
+      "device-c-throughput": {"alternative_id": "scanner-c", "attribute_id": "throughput", "relevance": "primary", "rationale": "Measure C throughput."},
+      "device-c-warranty": {"alternative_id": "scanner-c", "attribute_id": "warranty", "relevance": "secondary", "rationale": "Check C warranty."},
+      "device-failure-decimal": {"alternative_id": "scanner-a", "attribute_id": "failure_decimal", "relevance": "irrelevant", "rationale": "Request a four-decimal failure probability from five anecdotes.", "measurement_basis": "five unstructured anecdotes"}
+    },
+    "branches": {
+      "cert-now": {"label": "certification required now", "deferable": false, "required_now": true},
+      "future-factory": {"label": "optional future factory", "deferable": true, "required_now": false}
+    },
+    "simulator_query_plan": ["device-crate", "device-a-cert", "device-a-throughput", "device-a-warranty", "device-factory-future", "device-factory-layouts", "device-b-cert", "device-b-throughput", "device-b-warranty", "device-c-cert", "device-c-throughput", "device-c-warranty", "device-c-throughput", "device-failure-decimal"],
+    "decision_margin": 0.05,
+    "satisfactory_utility": 0.72,
+    "tags": ["measurement-vs-pseudo-precision", "current-risk", "future-branch", "repeat"],
+    "oracle_annotation": {"source": "dynamic", "version": "dynamic-oracle-v1", "reviewed_by": [], "notes": "A repeatable throughput check contrasts with unsupported failure-rate precision."}
   }
 ]
