@@ -2,7 +2,7 @@
 
 ## 1. Research question and evidence layers
 
-The experiment asks whether adding StopWise to an otherwise identical assistant reduces low-value, redundant information search while preserving or improving decision quality and keeping premature `COMMIT` rare.
+The experiment asks whether the new minimal StopWise prompt improves on both no StopWise and the frozen pre-optimization prompt by reducing low-value, redundant information search while preserving or improving decision quality and keeping premature `COMMIT` rare. This is a hypothesis, not the expected result encoded into scoring.
 
 The target pattern is joint, not a turn-count objective:
 
@@ -22,7 +22,7 @@ Passing infrastructure tests, reproducing a scripted fixture, or matching labels
 
 ## 2. Paired design and fair comparison
 
-The pairing unit is `(experiment_id, task_id, replicate, seed)`. Each unit must contain exactly one `baseline` and one `stopwise` episode. The pair validator fails on missing or duplicate conditions.
+The grouping unit is `(experiment_id, task_id, replicate, seed)`. Each unit must contain exactly one `baseline`, one `current_prompt`, and one `minimal_prompt` episode. The validator fails on missing or duplicate conditions.
 
 The conditions must match on:
 
@@ -31,9 +31,9 @@ The conditions must match on:
 - task version, hidden values, initial information, termination cap, simulator identity/version, replicate, and seed;
 - base assistant prompt and callback implementation.
 
-The only planned difference is that the StopWise condition appends the canonical `prompts/custom_instruction.md`. Condition order is deterministically randomized within each pair. Prompt and policy SHA-256 hashes are logged.
+The only planned difference is the system prompt: `baseline` has no StopWise text, `current_prompt` appends the frozen `prompts/custom_instruction_current_snapshot.md`, and `minimal_prompt` appends the canonical `prompts/custom_instruction.md`. Condition order is deterministically randomized within each group. Prompt and policy SHA-256 hashes are logged.
 
-The primary experiment uses direct-chat StopWise because visible assistant behavior is the treatment. Middleware using `StopWise(generator=...)` remains supported by the core package but must be a separately named experiment condition; its extra model calls, errors, tokens, and latency may not be silently mixed into the primary comparison.
+The primary experiment uses prompt-only StopWise because visible assistant behavior is the treatment. Middleware using `StopWise(generator=...)` remains supported by the core package but must be a separately named `middleware` condition; its extra model calls, errors, tokens, latency, and cost must be logged and may not be silently mixed into the primary comparison.
 
 ## 3. Tasks and hidden information
 
@@ -76,8 +76,8 @@ Repeated observations are never action-changing. A primary label alone is not en
 task initialization + partial information
   -> user information request
   -> environment reveals exactly one requested attribute
-  -> assistant gives the normal answer
-  -> optional StopWise action/nudge
+  -> assistant considers action value before extra search or comparison
+  -> assistant gives the necessary answer and any optional StopWise nudge
   -> simulator queries again or chooses
   -> final choice or environment turn cap
   -> replay scoring
@@ -87,9 +87,9 @@ The log distinguishes user, assistant, environment, query, and policy events. `N
 
 ## 6. User simulators
 
-The deterministic simulator is seeded, has a fixed query plan, and applies branch-local responses to visible nudges. It is for unit tests, replay checks, and dry runs only. Its scripted compliance makes it unsuitable for an effectiveness claim.
+The deterministic simulator is seeded, has a fixed query plan, reads structured StopWise action labels, uses oracle state when choosing, and applies branch-local responses to nudges. The deterministic assistant also uses hard-coded fixture rules. These fixtures are for unit tests, replay checks, and dry runs only. Their scripted compliance makes them unsuitable for an effectiveness claim.
 
-The text-only LLM callback is the intended pilot path. A pilot simulator must be separate from the assistant, identically configured across conditions, and blind to condition, action label, oracle state, hidden values, and policy logs. It receives only task wording and the visible transcript. Its prompt should describe a decision-maker's goals and natural continuation/choice behavior, not instruct it to obey `COMMIT` or expose a StopWise taxonomy.
+The `TextOnlyUserSimulator` callback is the intended pilot path. A pilot simulator must be separate from the assistant, identically configured across all three conditions, and blind to condition, action label, oracle state, hidden values, query relevance, branch annotations, and policy logs. It receives task wording, the visible transcript, alternative labels, and natural-language query descriptions with opaque IDs. Its prompt should describe a decision-maker's goals and natural continuation/choice behavior, not instruct it to obey `COMMIT` or expose a StopWise taxonomy. Because it never receives the structured label, it may continue after COMMIT-like prose.
 
 ## 7. Metrics
 
@@ -129,15 +129,17 @@ The policy oracle is an authored evaluation rule, not ground truth about human c
 
 ## 8. Statistical analysis
 
-All comparisons are paired on task, seed, and replicate. Reports include each condition's mean, median, and raw distribution; StopWise-minus-baseline paired differences; paired bootstrap confidence intervals for mean differences; standardized paired effect size `d_z` when the paired-difference variance is nonzero; and per-domain strata.
+All comparisons are paired on task, seed, and replicate. Reports include each condition's mean, median, and raw distribution plus three explicitly directed contrasts: `current_prompt - baseline`, `minimal_prompt - baseline`, and `minimal_prompt - current_prompt`. Each contrast includes paired bootstrap confidence intervals for mean differences, standardized paired effect size `d_z` when the paired-difference variance is nonzero, and per-domain strata.
 
 Binary decision outcomes report both rates, paired risk difference, discordant pair counts, and an exact two-sided McNemar test. Bootstrap resampling is over complete pairs, never individual condition rows. Replicates and bootstrap seeds are fixed and logged.
 
-Small samples are reported descriptively with intervals. No p-value, smoke result, or favorable point estimate may be promoted into a universal or causal claim outside the preregistered design. Multiple primary outcomes and any multiplicity correction should be fixed before a paid pilot.
+Small samples are reported descriptively with intervals. No p-value, smoke result, or favorable point estimate may be promoted into a universal or causal claim outside the preregistered design. The minimal prompt is allowed to lose. Multiple primary outcomes and any multiplicity correction should be fixed before a paid pilot.
 
 ## 9. Logging and replay
 
-Each raw episode records experiment/task/version and a canonical task-definition hash, condition, replicate, paired seed, base and exact model IDs, all model parameters and permissions, prompt/policy hashes, simulator and callback versions, complete turns, query IDs and revealed attributes, dynamic effects, policy actions and visible nudges, final choice, token usage, termination reason, errors/retries, and source-labeled optional latency.
+Each raw episode records experiment/task/version and a canonical task-definition hash, condition, replicate, paired seed, base and exact model IDs, all model parameters and permissions, prompt/policy hashes, simulator and callback versions, complete turns, query IDs and revealed attributes, dynamic effects, policy actions and visible nudges, final choice, assistant and user-simulator token usage with separate sources, assistant/user-simulator request counts, separate middleware calls/tokens when applicable, optional conservative estimated cost, termination reason, errors/retries, and source-labeled optional latency.
+
+Deterministic fixture word counts are labeled `estimated_fixture`. Only provider-returned counts may be labeled `provider_reported`; smoke estimates are never used to infer price or effect.
 
 Credential-like keys are rejected from model configuration. The JSONL writer also redacts credential-bearing keys and common bearer/API-token strings. Raw `episodes.jsonl` and derived `summary.json` are separate. `score.py` rebuilds query effects and all metrics from raw query IDs plus the versioned task file, and rejects revealed values that disagree with the task definition.
 

@@ -1,37 +1,22 @@
 ---
 name: stopwise
-description: Add a restrained metacognitive stopping policy to decision-oriented conversations by recognizing diminishing-return information search and intervening only when useful.
+description: Use when the user explicitly asks for StopWise or wants help deciding whether more comparison or information search is still action-relevant.
 ---
 
 # StopWise
 
-Use StopWise as a behavioral capability inside the current assistant, not as an autonomous agent or a separate workflow. Continue to answer the user's substantive request normally.
+This optional Skill is an installation wrapper around the StopWise core strategy. It does not add capabilities beyond that strategy. If an equivalent StopWise system or custom instruction is already active, do not load this wrapper too.
 
-## Policy question
+<!-- BEGIN GENERATED CORE POLICY -->
+# StopWise core strategy
 
-Track the conversation trajectory and ask internally:
+Answer the user's necessary questions and complete authorized work. Before starting extra search, expanding the option set, or giving a long comparison, silently ask whether the added information is likely to change the user's action. If a key unknown could change feasibility or a primary tradeoff, continue the useful inquiry. Preserve necessary verification, high-risk checks, and exploration the user explicitly requests.
 
-> Is additional information still likely to materially change the user's action?
+When further expansion has little decision value, do not perform it by default. Give the useful part of the answer concisely, then add a brief, non-judgmental nudge only if it clearly helps:
 
-Identify the original goal and current decision. Separate primary criteria from secondary preferences, and determine which primary criteria are resolved. Treat novel or interesting information as decision-relevant only when it could plausibly change the action.
+- **FOCUS** narrows continued work to the unresolved variables that can still change the action; it does not end the task.
+- **DEFER** postpones only a specific low-probability, distant, reversible, or easier-later branch; it does not end the main question.
+- **COMMIT** recommends that the user decide when primary criteria are resolved and no material uncertainty remains; it does not authorize the assistant to stop already-authorized work early.
 
-Use decision stakes and reversibility as a conservative gate. Preserve deep inquiry for high-impact or hard-to-reverse medical, legal, immigration, safety, financial, and career decisions. Do not infer personality traits or psychological conditions.
-
-## Signals
-
-Look for search-space expansion, redundant verification, pseudo-precision, secondary optimization, contingency branching, and goal drift. Do not confuse ordinary follow-ups with redundancy, meaningful quantitative uncertainty with pseudo-precision, goal refinement with drift, or a legitimate robustness check with repeated reassurance.
-
-## Choose the lightest useful action
-
-- `NO_INTERVENTION`: no nudge would help. Answer normally and remain silent about StopWise. This is a first-class action, not a fallback.
-- `FOCUS`: continued analysis is useful, but only a small set of unresolved variables can still change the decision. Narrow to those variables. FOCUS is not a stopping action.
-- `COMMIT`: primary criteria are resolved, the decision is stable, no material action-changing information remains, and further search has low marginal value. Use this strongest stopping action only with high confidence.
-- `DEFER`: one future contingency can wait because it is low-probability, low-cost, distant, reversible, or easier to solve later. Do not imply that useful work on the main decision must stop.
-
-Never choose `COMMIT` while material action-changing information remains. FOCUS and DEFER may coexist with unresolved information because they can narrow the current search or postpone only one branch.
-
-## Render behavior
-
-First give the normal substantive answer. If FOCUS, COMMIT, or DEFER is clearly useful, append a specific, non-judgmental nudge of at most one to three sentences. Explain the marginal decision value, name the remaining primary criterion when useful, and offer a stopping rule or next action. Do not repeat a nudge within a short span unless the decision state changes.
-
-For `NO_INTERVENTION`, do not mention StopWise, the policy analysis, or any action label. Do not emit JSON unless the user explicitly asks for a structured analysis.
+Do not treat conversation length, ordinary follow-ups, legitimate robustness checks, or remaining uncertainty alone as diminishing returns. Do not diagnose the user or call them irrational, obsessive, indecisive, or an overthinker. If a nudge would not clearly help, answer normally without labels, repeated reminders, JSON, or policy commentary.
+<!-- END GENERATED CORE POLICY -->

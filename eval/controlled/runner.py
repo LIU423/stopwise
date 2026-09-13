@@ -7,7 +7,7 @@ import re
 from hashlib import sha256
 from pathlib import Path
 from random import Random
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 from .conditions import (
     AssistantModelCallback,
@@ -25,8 +25,9 @@ from .schemas import (
     PolicyEvent,
     StopWiseAction,
     TokenUsage,
+    UsageSource,
 )
-from .simulators import DeterministicUserSimulator, UserSimulator
+from .simulators import DeterministicUserSimulator, TextOnlyUserSimulator
 
 
 def load_tasks(path: Path) -> list[ControlledTask]:
@@ -57,7 +58,7 @@ def run_episode(
     seed: int,
     max_information_turns: int,
     assistant: AssistantModelCallback,
-    simulator: UserSimulator,
+    simulator: DeterministicUserSimulator | TextOnlyUserSimulator,
     user_simulator_id: str,
     user_simulator_version: str,
     assistant_callback_id: str = "provider-neutral-callback",
@@ -69,7 +70,16 @@ def run_episode(
     query_events = []
     policy_events: list[PolicyEvent] = []
     token_usage = TokenUsage()
+    user_simulator_token_usage = TokenUsage()
+    user_simulator_token_usage_source = UsageSource.NOT_RECORDED
+    token_usage_source = UsageSource.NOT_RECORDED
+    assistant_request_count = 0
+    user_simulator_request_count = 0
+    middleware_request_count = 0
+    middleware_token_usage = TokenUsage()
     errors: list[str] = []
+    estimated_cost_usd = 0.0
+    latency_ms = 0.0
 
     def add_turn(role: str, content: str) -> None:
         turns.append(ConversationTurn(index=len(turns), role=role, content=content))
@@ -82,7 +92,24 @@ def run_episode(
     termination_reason = "user_choice"
 
     while len(query_events) < max_information_turns:
-        user_action = simulator.next_action(environment.state())
+        if isinstance(simulator, DeterministicUserSimulator):
+            user_action = simulator.next_action(environment.state())
+        else:
+            user_action = simulator.next_action(transcript)
+            user_simulator_request_count += 1
+            user_simulator_token_usage = TokenUsage(
+                prompt_tokens=user_simulator_token_usage.prompt_tokens + user_action.prompt_tokens,
+                completion_tokens=user_simulator_token_usage.completion_tokens + user_action.completion_tokens,
+            )
+            if user_action.usage_source != UsageSource.NOT_RECORDED:
+                if user_simulator_token_usage_source not in {
+                    UsageSource.NOT_RECORDED,
+                    user_action.usage_source,
+                }:
+                    raise ValueError("user simulator mixed incompatible token usage sources")
+                user_simulator_token_usage_source = user_action.usage_source
+            estimated_cost_usd += user_action.estimated_cost_usd
+            latency_ms += user_action.latency_ms
         if user_action.kind == "choose":
             final_choice = user_action.choice
             add_turn("user", f"Final choice: {final_choice}")
@@ -106,22 +133,29 @@ def run_episode(
         add_turn("environment", observation)
 
         request = AssistantRequest(
-            condition=condition.name,
             system_prompt=condition.system_prompt,
             model=condition.model,
             messages=transcript,
             visible_attributes=environment.visible_values(),
-            available_query_ids=sorted(task.queries),
-            last_query_id=query_id,
-            last_query_relevance=query.relevance,
-            last_query_branch_id=query.branch_id,
-            last_query_repeated=outcome.event.repeated,
+            latest_observation=observation,
         )
         response = assistant(request)
+        assistant_request_count += 1
         token_usage = TokenUsage(
             prompt_tokens=token_usage.prompt_tokens + response.prompt_tokens,
             completion_tokens=token_usage.completion_tokens + response.completion_tokens,
         )
+        if response.usage_source != UsageSource.NOT_RECORDED:
+            if token_usage_source not in {UsageSource.NOT_RECORDED, response.usage_source}:
+                raise ValueError("assistant callback mixed incompatible token usage sources")
+            token_usage_source = response.usage_source
+        middleware_request_count += response.middleware_calls
+        middleware_token_usage = TokenUsage(
+            prompt_tokens=middleware_token_usage.prompt_tokens + response.middleware_prompt_tokens,
+            completion_tokens=middleware_token_usage.completion_tokens + response.middleware_completion_tokens,
+        )
+        estimated_cost_usd += response.estimated_cost_usd
+        latency_ms += response.latency_ms
         rendered = response.content
         if response.visible_nudge:
             rendered = f"{rendered}\n\n{response.visible_nudge}"
@@ -150,13 +184,12 @@ def run_episode(
                 errors.append(
                     f"DEFER targeted {response.target_branch_id!r}; oracle branch is {expected_branch!r}"
                 )
-        simulator.observe(response)
+        if isinstance(simulator, DeterministicUserSimulator):
+            simulator.observe(response)
     else:
         termination_reason = "max_information_turns"
-        final_choice = simulator.next_action(environment.state()).choice
-        if final_choice is None:
-            candidates = environment.state().recommended or environment.state().possible_feasible
-            final_choice = candidates[0] if candidates else sorted(task.alternatives)[0]
+        candidates = environment.state().recommended or environment.state().possible_feasible
+        final_choice = candidates[0] if candidates else sorted(task.alternatives)[0]
         add_turn("user", f"Environment-forced final choice: {final_choice}")
 
     if final_choice is None:
@@ -192,9 +225,19 @@ def run_episode(
         visible_nudges=[event.visible_nudge for event in policy_events if event.visible_nudge],
         final_choice=final_choice,
         token_usage=token_usage,
+        token_usage_source=token_usage_source,
+        user_simulator_token_usage=user_simulator_token_usage,
+        user_simulator_token_usage_source=user_simulator_token_usage_source,
+        assistant_request_count=assistant_request_count,
+        user_simulator_request_count=user_simulator_request_count,
+        middleware_request_count=middleware_request_count,
+        middleware_token_usage=middleware_token_usage,
+        estimated_cost_usd=estimated_cost_usd,
         termination_reason=termination_reason,
         errors=errors,
         retries=0,
+        latency_ms=latency_ms,
+        latency_source="client" if latency_ms else "not_recorded",
     )
 
 
@@ -203,16 +246,38 @@ def run_paired_experiment(
     tasks: Iterable[ControlledTask],
     assistant: AssistantModelCallback,
 ) -> list[EpisodeLog]:
+    """Backwards-compatible deterministic grouped smoke runner."""
+
+    return run_grouped_experiment(
+        config,
+        tasks,
+        assistant,
+        simulator_factory=lambda task, seed: DeterministicUserSimulator(task, seed),
+    )
+
+
+def run_grouped_experiment(
+    config: ExperimentConfig,
+    tasks: Iterable[ControlledTask],
+    assistant: AssistantModelCallback,
+    *,
+    simulator_factory: Callable[
+        [ControlledTask, int], DeterministicUserSimulator | TextOnlyUserSimulator
+    ],
+    on_episode: Callable[[list[EpisodeLog]], None] | None = None,
+) -> list[EpisodeLog]:
+    """Run all three primary conditions with an identical simulator factory."""
+
     conditions = build_conditions(config.base_system_prompt, config.model)
     assert_fair_conditions(list(conditions.values()))
     logs: list[EpisodeLog] = []
     for task in tasks:
         for replicate in range(config.replicates):
             seed = paired_seed(config.base_seed, task.task_id, replicate)
-            order = ["baseline", "stopwise"]
+            order = ["baseline", "current_prompt", "minimal_prompt"]
             Random(seed).shuffle(order)
             for name in order:
-                simulator = DeterministicUserSimulator(task, seed)
+                simulator = simulator_factory(task, seed)
                 logs.append(
                     run_episode(
                         experiment_id=config.experiment_id,
@@ -228,6 +293,8 @@ def run_paired_experiment(
                         assistant_callback_id=config.assistant_callback_id,
                     )
                 )
+                if on_episode is not None:
+                    on_episode(list(logs))
     return logs
 
 

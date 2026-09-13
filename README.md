@@ -6,17 +6,16 @@ StopWise is a lightweight metacognitive stopping and intervention policy for LLM
 
 LLMs are good at answering the next question. **StopWise asks whether the next question is still worth asking.**
 
-StopWise is a policy, not a single deployment. Use it as a zero-code custom instruction, structured Python middleware, or a reusable assistant Skill.
+StopWise now has one core conversational strategy and two optional adapters. The system/custom instruction is the default entry point; the Skill is an installable wrapper around the same text, and the Python analyzer is an optional structured-analysis interface.
 
 ```text
-                         StopWise Policy
+                  Core conversational strategy
+                     system/custom prompt
                               │
-              ┌───────────────┼───────────────┐
-              │               │               │
-     Custom Instruction    Middleware        Skill
-              │               │               │
-        direct chat       structured API   host assistant
-        no coding         JSON analysis    capability
+                 ┌────────────┴────────────┐
+                 │                         │
+        optional Skill wrapper    optional Python analyzer
+          same embedded policy       structured policy result
 ```
 
 Two principles anchor the project:
@@ -62,25 +61,25 @@ StopWise is a **research-inspired engineering synthesis** with two primary influ
 
 StopWise is not a reproduction of either work. It applies stopping-rule and adaptive-intervention ideas to general LLM-assisted decision conversations. See [theory and design rationale](docs/theory.md) and the verified [BibTeX references](references.bib).
 
-## Three ways to use StopWise
+## Core strategy and optional adapters
 
 ### 1. Custom Instruction — zero code
 
-Copy [`prompts/custom_instruction.md`](prompts/custom_instruction.md) into the system/custom-instruction field of ChatGPT, Claude, Gemini, or another conversational assistant. A shorter version is available at [`prompts/custom_instruction_compact.md`](prompts/custom_instruction_compact.md).
+Copy [`prompts/custom_instruction.md`](prompts/custom_instruction.md) into the system/custom-instruction field of ChatGPT, Claude, Gemini, or another conversational assistant. The legacy [`custom_instruction_compact.md`](prompts/custom_instruction_compact.md) name is retained as a generated compatibility alias to the same strategy.
 
 ```text
 user asks question
         ↓
-assistant answers normally
+assistant identifies the necessary answer
         ↓
-StopWise checks for diminishing returns
+before extra search/comparison, check action value
         ↓
-optional 1–3 sentence nudge
+answer normally, with an optional brief nudge
 ```
 
 This mode does not expose JSON. When no intervention is warranted, the user sees no StopWise meta-comment.
 
-### 2. Middleware — structured API
+### 2. Python analyzer — optional structured API
 
 The Python package analyzes conversation history and returns a validated policy result. The host application decides whether and how to render it.
 
@@ -98,13 +97,15 @@ print(result.action)
 print(result.message)
 ```
 
-The core is provider-light: OpenAI-compatible transports are optional, and arbitrary SDKs or local models can use `generator=`. Provider details belong to this deployment and are documented under [integrations](docs/integrations.md).
+The core is provider-light: OpenAI-compatible transports are optional, and arbitrary SDKs or local models can use `generator=`. This interface provides structured integration and Pydantic consistency checks; it cannot guarantee that a model's policy judgment is objectively correct. It normally adds a separate model call, so it is not enabled on every turn by the default prompt. Provider details are documented under [integrations](docs/integrations.md).
 
-### 3. Skill — reusable assistant capability
+### 3. Skill — optional installation wrapper
 
-[`skills/stopwise/SKILL.md`](skills/stopwise/SKILL.md) packages the same policy as a host-assistant capability. It tracks the goal, criteria, stakes, reversibility, and trajectory; answers normally first; then adds a short nudge only when useful.
+[`skills/stopwise/SKILL.md`](skills/stopwise/SKILL.md) embeds the same core strategy for installations that benefit from on-demand discovery. It is not an extra capability and should not be loaded alongside an already-active StopWise system/custom instruction. Run `python tools/sync_policy_assets.py --check` to verify the generated wrapper and compatibility prompt are synchronized.
 
-The Skill is not an autonomous agent. With `NO_INTERVENTION`, it remains silent about StopWise.
+The Skill is not an autonomous agent. Its narrowed description targets explicit StopWise requests and questions about whether further comparison or search remains action-relevant.
+
+This consolidation follows the maintenance advice in OpenAI's [“Rethinking skills and prompts for GPT-6 Astra”](https://developers.openai.com/blog/rethinking-skills-and-prompts-for-gpt-6-astra): keep Skill descriptions discriminating, remove duplicate/conflicting guidance, and avoid over-prescriptive recipes. Whether the new minimal strategy improves StopWise outcomes is still an empirical question, not a conclusion supplied by that article.
 
 ## How it works
 
@@ -208,9 +209,9 @@ The older model/effort matrix remains as [legacy exploratory policy-classificati
 
 ### End-to-end effectiveness evaluation
 
-[`eval/controlled/`](eval/controlled/) now provides six interactive task domains, a dynamic information-value oracle, deterministic and provider-neutral simulator/callback interfaces, a paired runner, replayable raw logs, safety metrics, and bootstrap summaries for baseline assistant versus the same assistant plus StopWise. The checked-in offline run is a deterministic smoke fixture, not a model study.
+[`eval/controlled/`](eval/controlled/) provides six interactive task domains, a dynamic information-value oracle, deterministic and provider-neutral simulator/callback interfaces, a grouped paired runner, an explicitly gated OpenAI live CLI, replayable raw logs, safety metrics, and bootstrap summaries for three conditions: `baseline`, the frozen pre-optimization `current_prompt`, and the new `minimal_prompt`. All three share the same exact base-model configuration, task, seed, replicate, tools, context budget, response protocol, and turn cap. The checked-in offline run is a deterministic smoke fixture, not a model study.
 
-A live controlled model experiment has **not** been run here. The desired result is not simply fewer turns:
+The live CLI requires an explicit paid-run flag and a cost cap; its minimal fixture is two tasks × three conditions × one replicate. A small pilot must still be labeled pilot model results, not controlled effectiveness evidence. The desired result is not simply fewer turns:
 
 ```text
 redundant search ↓
@@ -235,13 +236,16 @@ These are implementation details inside the middleware mode, not separate StopWi
 Currently implemented:
 
 - the four-action StopWise policy and six conversational signals;
-- full and compact direct-chat instructions;
+- one canonical direct-chat strategy plus a synchronized compatibility prompt and Skill wrapper;
 - provider-light Python analyzer middleware with Pydantic validation;
 - a reusable Skill representation;
 - contrastive policy regression cases and action-specific metrics;
 - controlled-evaluation tasks, dynamic oracle, paired runner, replay scoring, and deterministic smoke infrastructure.
+- an OpenAI Responses API live pilot adapter with provider token accounting, cost guard, and checkpointed outputs.
 
 Preliminary evidence is limited to policy classification on handcrafted cases. No claim is made that StopWise currently reduces redundant turns, preserves decision quality, or improves user outcomes. Those are hypotheses for controlled end-to-end evaluation.
+
+**尚未形成 StopWise 端到端有效性证据。**
 
 ## Limitations
 

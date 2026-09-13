@@ -201,11 +201,20 @@ def test_all_deployment_prompts_load():
     analyzer = load_prompt("analyzer")
     direct = load_prompt("custom_instruction")
     compact = load_prompt("custom_instruction_compact")
+    snapshot = load_prompt("custom_instruction_current_snapshot")
 
     assert "Return one JSON object only" in analyzer
     assert "does not expose JSON" not in analyzer
-    assert "Answer each substantive user question normally" in direct
-    assert "say nothing meta" in compact
+    assert "Before starting extra search" in direct
+    assert "already-authorized work early" in direct
+    assert compact == direct
+    assert "After composing the answer" in snapshot
+    assert len(direct) < len(snapshot)
+
+
+def test_structured_analyzer_is_consistent_but_not_claimed_objective():
+    assert "internal consistency" in StopWise.__doc__
+    assert "objectively correct" in StopWise.__doc__
 
 
 def test_unknown_prompt_kind_is_rejected():

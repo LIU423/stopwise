@@ -6,9 +6,11 @@ from dataclasses import dataclass
 from random import Random
 from typing import Protocol
 
+from pydantic import BaseModel, ConfigDict
+
 from .conditions import AssistantResponse
 from .environment import OracleState
-from .schemas import ControlledTask, QueryRelevance, StopWiseAction
+from .schemas import ControlledTask, QueryRelevance, StopWiseAction, UsageSource
 
 
 @dataclass(frozen=True)
@@ -16,9 +18,14 @@ class UserAction:
     kind: str
     query_id: str | None = None
     choice: str | None = None
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    usage_source: UsageSource = UsageSource.NOT_RECORDED
+    estimated_cost_usd: float = 0.0
+    latency_ms: float = 0.0
 
 
-class UserSimulator(Protocol):
+class FixtureUserSimulator(Protocol):
     def observe(self, response: AssistantResponse) -> None: ...
 
     def next_action(self, state: OracleState) -> UserAction: ...
@@ -79,19 +86,65 @@ class DeterministicUserSimulator:
         return candidates[self._rng.randrange(len(candidates))]
 
 
-class TextOnlyUserModelCallback(Protocol):
-    """Future LLM simulator hook.
+class UserModelRequest(BaseModel):
+    """Condition-blind input for a live user simulator.
 
-    Implementations receive the visible transcript and task description only.
-    Condition names, StopWise labels, hidden values, and oracle state must not be
-    included by the caller.
+    The action menu uses natural-language descriptions and opaque IDs, but
+    contains no hidden values, relevance labels, oracle state, or policy event.
     """
 
-    def __call__(
+    model_config = ConfigDict(extra="forbid")
+
+    task_id: str
+    scenario: str
+    transcript: list[dict[str, str]]
+    available_queries: dict[str, str]
+    alternatives: dict[str, str]
+    seed: int
+
+
+class TextOnlyUserModelCallback(Protocol):
+    """Live LLM simulator hook with a condition-blind request."""
+
+    def __call__(self, request: UserModelRequest) -> UserAction: ...
+
+
+class TextOnlyUserSimulator:
+    """Adapter that never receives oracle state or structured StopWise labels.
+
+    The callback decides from visible natural language. A COMMIT-like sentence is
+    therefore advisory text, not a mechanical termination signal.
+    """
+
+    def __init__(
         self,
-        *,
-        task_id: str,
-        scenario: str,
-        transcript: list[dict[str, str]],
+        task: ControlledTask,
         seed: int,
-    ) -> UserAction: ...
+        callback: TextOnlyUserModelCallback,
+    ) -> None:
+        self.task = task
+        self.seed = seed
+        self.callback = callback
+
+    def next_action(self, transcript: list[dict[str, str]]) -> UserAction:
+        request = UserModelRequest(
+            task_id=self.task.task_id,
+            scenario=self.task.scenario,
+            transcript=[dict(item) for item in transcript],
+            available_queries={
+                query_id: query.rationale for query_id, query in self.task.queries.items()
+            },
+            alternatives={
+                alternative_id: alternative.label
+                for alternative_id, alternative in self.task.alternatives.items()
+            },
+            seed=self.seed,
+        )
+        action = self.callback(request)
+        if action.kind == "query" and action.query_id not in self.task.queries:
+            raise ValueError(f"live simulator returned unknown query: {action.query_id!r}")
+        if action.kind == "choose" and action.choice not in self.task.alternatives:
+            raise ValueError(f"live simulator returned unknown choice: {action.choice!r}")
+        if action.kind not in {"query", "choose"}:
+            raise ValueError(f"live simulator returned invalid action kind: {action.kind!r}")
+        return action

@@ -8,6 +8,7 @@ _PROMPT_NAMES = {
     "analyzer": "analyzer_system.md",
     "custom_instruction": "custom_instruction.md",
     "custom_instruction_compact": "custom_instruction_compact.md",
+    "custom_instruction_current_snapshot": "custom_instruction_current_snapshot.md",
 }
 
 

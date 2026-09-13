@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from stopwise.prompts import load_prompt
 
-from .schemas import ModelConfig, QueryRelevance, StopWiseAction
+from .schemas import ModelConfig, StopWiseAction, UsageSource
 
 
 def prompt_hash(text: str) -> str:
@@ -28,10 +28,12 @@ class ConditionHarness:
 
 
 def build_conditions(base_system_prompt: str, model: ModelConfig) -> dict[str, ConditionHarness]:
-    """Build the two direct-chat conditions with one shared model config."""
+    """Build the three primary prompt conditions with one shared model config."""
 
-    policy = load_prompt("custom_instruction")
-    stopwise_prompt = f"{base_system_prompt.rstrip()}\n\n{policy}"
+    current_policy = load_prompt("custom_instruction_current_snapshot")
+    minimal_policy = load_prompt("custom_instruction")
+    current_prompt = f"{base_system_prompt.rstrip()}\n\n{current_policy}"
+    minimal_prompt = f"{base_system_prompt.rstrip()}\n\n{minimal_policy}"
     return {
         "baseline": ConditionHarness(
             name="baseline",
@@ -41,40 +43,48 @@ def build_conditions(base_system_prompt: str, model: ModelConfig) -> dict[str, C
             prompt_version_hash=prompt_hash(base_system_prompt),
             policy_version_hash=None,
         ),
-        "stopwise": ConditionHarness(
-            name="stopwise",
-            system_prompt=stopwise_prompt,
+        "current_prompt": ConditionHarness(
+            name="current_prompt",
+            system_prompt=current_prompt,
             model=model,
             base_prompt_hash=prompt_hash(base_system_prompt),
-            prompt_version_hash=prompt_hash(stopwise_prompt),
-            policy_version_hash=prompt_hash(policy),
+            prompt_version_hash=prompt_hash(current_prompt),
+            policy_version_hash=prompt_hash(current_policy),
+        ),
+        "minimal_prompt": ConditionHarness(
+            name="minimal_prompt",
+            system_prompt=minimal_prompt,
+            model=model,
+            base_prompt_hash=prompt_hash(base_system_prompt),
+            prompt_version_hash=prompt_hash(minimal_prompt),
+            policy_version_hash=prompt_hash(minimal_policy),
         ),
     }
 
 
 def assert_fair_conditions(conditions: Sequence[ConditionHarness]) -> None:
-    if {item.name for item in conditions} != {"baseline", "stopwise"}:
-        raise ValueError("paired experiment requires baseline and stopwise conditions")
+    required = {"baseline", "current_prompt", "minimal_prompt"}
+    if {item.name for item in conditions} != required:
+        raise ValueError(f"controlled experiment requires conditions: {sorted(required)}")
     configs = [item.model.model_dump(mode="json") for item in conditions]
     if any(config != configs[0] for config in configs[1:]):
-        raise ValueError("baseline and StopWise must use identical model configuration")
+        raise ValueError("all prompt conditions must use identical model configuration")
 
 
 class AssistantRequest(BaseModel):
-    """Provider-neutral request. Hidden alternative values are never included."""
+    """Provider-neutral live request containing visible information only.
+
+    Condition names, oracle state, relevance labels, branch annotations, repeat
+    flags, and hidden alternative values are deliberately absent.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
-    condition: str
     system_prompt: str
     model: ModelConfig
     messages: list[dict[str, str]]
     visible_attributes: dict[str, Any]
-    available_query_ids: list[str]
-    last_query_id: str
-    last_query_relevance: QueryRelevance
-    last_query_branch_id: str | None = None
-    last_query_repeated: bool
+    latest_observation: str
 
 
 class AssistantResponse(BaseModel):
@@ -86,6 +96,12 @@ class AssistantResponse(BaseModel):
     target_branch_id: str | None = None
     prompt_tokens: int = Field(default=0, ge=0)
     completion_tokens: int = Field(default=0, ge=0)
+    usage_source: UsageSource = UsageSource.NOT_RECORDED
+    middleware_calls: int = Field(default=0, ge=0)
+    middleware_prompt_tokens: int = Field(default=0, ge=0)
+    middleware_completion_tokens: int = Field(default=0, ge=0)
+    estimated_cost_usd: float = Field(default=0.0, ge=0)
+    latency_ms: float = Field(default=0.0, ge=0)
 
     @model_validator(mode="after")
     def validate_action_visibility(self) -> "AssistantResponse":
@@ -106,40 +122,37 @@ class DeterministicAssistantCallback:
     """Offline fixture callback; validates plumbing, not conversational efficacy."""
 
     def __call__(self, request: AssistantRequest) -> AssistantResponse:
-        revealed = request.visible_attributes
-        ref = next(
-            (
-                key
-                for key in revealed
-                if key.endswith(f".{request.last_query_id.split('__')[-1]}")
-            ),
-            None,
+        last_user = next(
+            item["content"] for item in reversed(request.messages) if item["role"] == "user"
         )
-        substantive = (
-            f"The requested information is now available ({ref or request.last_query_id})."
-        )
+        query_id = last_user.split(":", 1)[0].removeprefix("Information query ").strip()
+        query_text = last_user.split(":", 1)[1].strip() if ":" in last_user else last_user
+        substantive = f"The requested information is {request.latest_observation}."
         prompt_tokens = sum(len(item["content"].split()) for item in request.messages) + len(
             request.system_prompt.split()
         )
 
-        if request.condition == "baseline":
+        policy_enabled = all(
+            marker in request.system_prompt for marker in ("StopWise", "FOCUS", "COMMIT", "DEFER")
+        )
+        if not policy_enabled:
             return AssistantResponse(
                 content=substantive,
                 prompt_tokens=prompt_tokens,
                 completion_tokens=len(substantive.split()),
+                usage_source=UsageSource.ESTIMATED_FIXTURE,
             )
 
         action = StopWiseAction.NO_INTERVENTION
         target_branch_id = None
-        if request.last_query_repeated:
+        repeated = sum(query_id in item["content"] for item in request.messages if item["role"] == "user") > 1
+        lowered = query_text.lower()
+        if repeated:
             action = StopWiseAction.COMMIT
-        elif request.last_query_relevance == QueryRelevance.DEFERABLE:
+        elif any(word in lowered for word in ("future", "years after", "years later", "hypothetical", "2028", "2029", "2030")):
             action = StopWiseAction.DEFER
-            target_branch_id = request.last_query_branch_id
-        elif request.last_query_relevance in {
-            QueryRelevance.IRRELEVANT,
-            QueryRelevance.SECONDARY,
-        }:
+            target_branch_id = self._DEFER_BRANCHES.get(query_id)
+        elif any(word in lowered for word in self._LOW_VALUE_TERMS):
             action = StopWiseAction.FOCUS
 
         nudge = ""
@@ -158,4 +171,26 @@ class DeterministicAssistantCallback:
             target_branch_id=target_branch_id,
             prompt_tokens=prompt_tokens,
             completion_tokens=len(rendered.split()),
+            usage_source=UsageSource.ESTIMATED_FIXTURE,
         )
+
+    _LOW_VALUE_TERMS = (
+        "color", "packaging", "typography", "font", "cover art", "logo",
+        "invoice", "syllabus", "meal-card", "shipping-crate", "secondary",
+        "refundability", "teaching format", "warranty", "carry weight",
+        "hundredth-point", "decimal", "precision",
+    )
+    _DEFER_BRANCHES = {
+        "lap-future-dock": "future-dock",
+        "lap-future-countries": "future-dock",
+        "hotel-spa-future": "future-spa",
+        "hotel-spa-menu": "future-spa",
+        "sub-ai-future": "future-ai",
+        "sub-ai-regions": "future-ai",
+        "course-alumni-future": "future-alumni",
+        "course-alumni-cities": "future-alumni",
+        "travel-side-future": "future-side-trip",
+        "travel-side-maps": "future-side-trip",
+        "device-factory-future": "future-factory",
+        "device-factory-layouts": "future-factory",
+    }

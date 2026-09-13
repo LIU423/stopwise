@@ -33,16 +33,16 @@ The stored 12-case Codex matrix is retained under [`eval/legacy/codex_matrix`](.
 The framework in [`eval/controlled`](../eval/controlled) is designed to compare:
 
 ```text
-Baseline assistant
-vs
-same base assistant + StopWise
+baseline: no StopWise
+current_prompt: frozen pre-optimization strategy
+minimal_prompt: new canonical strategy
 ```
 
-The base model and exact version, decoding settings, tool permissions, context and turn budgets, task/replicate seeds, information environment, and user simulator must be identical across paired conditions. The primary treatment appends the direct-chat StopWise prompt; middleware is a separate experimental condition because it adds calls, cost, latency, and failure modes.
+The base model and exact version, decoding settings, tool permissions, context and turn budgets, task/replicate seeds, information environment, user simulator, and request limits must be identical across grouped paired conditions. Only the system prompt differs. The report gives `current_prompt - baseline`, `minimal_prompt - baseline`, and `minimal_prompt - current_prompt` contrasts; direction is explicit because lower is favorable for some search/cost metrics while higher is favorable for utility and quality metrics. Middleware is a separate experimental condition because it adds calls, cost, latency, and failure modes.
 
 Structured tasks reveal attributes incrementally. The dynamic oracle compares pre/post feasible and possible-optimal sets, constraint status, recommendation, ranking, utility-margin state, and information sufficiency; a query is not action-changing merely because it concerns a primary criterion. End-to-end outcomes include optimal-choice accuracy, constraint satisfaction, utility, regret, information-seeking and total turns, token use, redundant queries, premature commits, unsafe defers, false/missed interventions, FOCUS continuation, silence precision/recall, and Action-Changing Rate (ACR): dynamically action-changing new queries divided by all new information queries.
 
-The paired report includes condition means, medians, distributions, paired differences, bootstrap intervals, paired binary comparisons, effect sizes, and task-domain strata. Raw JSONL and derived summaries are separate, and scoring replays raw query IDs against the versioned task file.
+The grouped paired report includes condition means, medians, distributions, explicitly directed paired differences, bootstrap intervals, paired binary comparisons, effect sizes, and task-domain strata. Raw JSONL and derived summaries are separate, and scoring replays raw query IDs against the versioned task file.
 
 The desired empirical pattern is not merely fewer turns:
 
@@ -52,6 +52,6 @@ decision quality is approximately preserved or improves
 premature commit remains low
 ```
 
-The repository includes deterministic smoke validation only. It can validate and score paired logs, but no controlled LLM experiment is included as a reported result. Until such an experiment is run with adequate replication and analysis, claims that StopWise reduces redundant turns or preserves decision quality remain unmeasured. See the full [controlled protocol](../eval/controlled/PROTOCOL.md).
+The repository includes implemented infrastructure, deterministic smoke validation, and an explicitly gated OpenAI Responses API live CLI. The smoke assistant uses hard-coded rules, and its user simulator reads action labels and oracle state; this validates mechanisms, not prompt effectiveness. The live path excludes hidden answers and oracle/evaluation labels from the assistant, and gives the user simulator only condition-blind visible natural language. It records provider-reported token usage separately from conservative cost estimates, performs no automatic retries, and refuses a plan whose guarded worst-case cost exceeds the requested hard cap. A minimal one-replicate pilot, even when run, is descriptive pilot-model output rather than controlled effectiveness evidence. See the full [controlled protocol](../eval/controlled/PROTOCOL.md).
 
 **尚未形成 StopWise 端到端有效性证据。**

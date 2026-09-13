@@ -34,11 +34,13 @@ class StopWiseError(RuntimeError):
 
 
 class StopWise:
-    """Analyze a conversation using a compatible client or custom generator.
+    """Return a validated, structured StopWise policy analysis.
 
     The client may expose either ``responses.create`` or
     ``chat.completions.create``. Other SDKs can be integrated through
-    ``generator``. No provider SDK is required by the core package.
+    ``generator``. No provider SDK is required by the core package. Schema
+    validation enforces internal consistency; it does not guarantee that the
+    model's judgment is objectively correct.
     """
 
     def __init__(

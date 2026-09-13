@@ -1,0 +1,30 @@
+{
+  "experiment_id": "stopwise-minimal-openai-pilot-2026-09-13",
+  "task_file": "../tasks.json",
+  "task_ids": ["laptop-engineering", "travel-route"],
+  "replicates": 1,
+  "base_seed": 20260913,
+  "max_information_turns": 8,
+  "model": {
+    "provider": "openai",
+    "base_model": "gpt-5.5",
+    "exact_model_version": "gpt-5.5-2026-04-23",
+    "temperature": null,
+    "top_p": null,
+    "max_output_tokens": 128,
+    "context_budget": 8192,
+    "tool_permissions": [],
+    "parameters": {
+      "reasoning": {"effort": "none"},
+      "text": {"verbosity": "low"},
+      "store": false,
+      "service_tier": "default"
+    }
+  },
+  "base_system_prompt": "Help the user make the stated decision using only information revealed by the controlled environment. Answer the requested attribute, do not invent hidden values, and preserve the user's authority to choose.",
+  "user_simulator_id": "openai-text-only-visible-v1",
+  "user_simulator_version": "1.0.0",
+  "assistant_callback_id": "openai-responses-structured-v1",
+  "bootstrap_samples": 2000,
+  "confidence_level": 0.95
+}

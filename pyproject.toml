@@ -30,6 +30,7 @@ where = ["src"]
   "prompts/analyzer_system.md",
   "prompts/custom_instruction.md",
   "prompts/custom_instruction_compact.md",
+  "prompts/custom_instruction_current_snapshot.md",
 ]
 
 [tool.pytest.ini_options]

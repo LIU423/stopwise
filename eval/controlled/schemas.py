@@ -22,6 +22,12 @@ class StopWiseAction(StrEnum):
     DEFER = "DEFER"
 
 
+class UsageSource(StrEnum):
+    NOT_RECORDED = "not_recorded"
+    ESTIMATED_FIXTURE = "estimated_fixture"
+    PROVIDER_REPORTED = "provider_reported"
+
+
 class QueryRelevance(StrEnum):
     PRIMARY = "primary"
     SECONDARY = "secondary"
@@ -194,8 +200,8 @@ class ModelConfig(StrictModel):
     provider: str
     base_model: str
     exact_model_version: str
-    temperature: float = 0.0
-    top_p: float = 1.0
+    temperature: float | None = None
+    top_p: float | None = None
     max_output_tokens: int = Field(default=1024, gt=0)
     context_budget: int = Field(default=8192, gt=0)
     tool_permissions: list[str] = Field(default_factory=list)
@@ -219,7 +225,7 @@ class ExperimentConfig(StrictModel):
     base_system_prompt: str = "Help the user make the stated decision using only revealed information."
     user_simulator_id: str = "deterministic-v1"
     user_simulator_version: str = "1.0.0"
-    assistant_callback_id: str = "deterministic-fixture-v1"
+    assistant_callback_id: str = "deterministic-fixture-v2"
     bootstrap_samples: int = Field(default=2000, ge=100)
     confidence_level: float = Field(default=0.95, gt=0.5, lt=1)
 
@@ -273,13 +279,13 @@ class PolicyEvent(StrictModel):
 
 
 class EpisodeLog(StrictModel):
-    schema_version: str = "1.0.0"
+    schema_version: str = "2.0.0"
     experiment_id: str
     task_id: str
     task_version: str
     task_definition_hash: str
     domain: str
-    condition: Literal["baseline", "stopwise", "middleware"]
+    condition: Literal["baseline", "current_prompt", "minimal_prompt", "middleware"]
     replicate: int = Field(ge=0)
     seed: int
     base_model: str
@@ -301,6 +307,14 @@ class EpisodeLog(StrictModel):
     visible_nudges: list[str]
     final_choice: str
     token_usage: TokenUsage
+    token_usage_source: UsageSource = UsageSource.NOT_RECORDED
+    user_simulator_token_usage: TokenUsage = Field(default_factory=TokenUsage)
+    user_simulator_token_usage_source: UsageSource = UsageSource.NOT_RECORDED
+    assistant_request_count: int = Field(default=0, ge=0)
+    user_simulator_request_count: int = Field(default=0, ge=0)
+    middleware_request_count: int = Field(default=0, ge=0)
+    middleware_token_usage: TokenUsage = Field(default_factory=TokenUsage)
+    estimated_cost_usd: float | None = Field(default=None, ge=0)
     termination_reason: Literal["user_choice", "max_information_turns", "error"]
     errors: list[str] = Field(default_factory=list)
     retries: int = Field(default=0, ge=0)
@@ -315,6 +329,12 @@ class EpisodeLog(StrictModel):
             raise ValueError("exact_model_version must match assistant_model_config")
         if self.condition == "baseline" and self.policy_events:
             raise ValueError("baseline episodes cannot contain StopWise policy events")
+        if self.condition != "middleware" and (
+            self.middleware_request_count or self.middleware_token_usage.total_tokens
+        ):
+            raise ValueError("middleware usage must be recorded only in a middleware condition")
+        if self.condition == "middleware" and self.middleware_request_count == 0:
+            raise ValueError("middleware conditions must record their extra model calls")
         if self.stopwise_actions != [event.action for event in self.policy_events]:
             raise ValueError("stopwise_actions must match policy_events")
         if self.visible_nudges != [event.visible_nudge for event in self.policy_events if event.visible_nudge]:

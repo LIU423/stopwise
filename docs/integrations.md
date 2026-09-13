@@ -1,6 +1,6 @@
 # Middleware integrations
 
-Provider integrations belong to the **middleware deployment**. They are transport details, not separate StopWise deployment modes. The core package depends only on Pydantic and can use an OpenAI-compatible client or a custom callback.
+Provider integrations belong to the optional **Python analyzer adapter**. The default StopWise entry point is the direct system/custom prompt. The analyzer is a transport-neutral way to obtain a Pydantic-validated policy result; validation checks schema and internal invariants, not the objective correctness of the model's judgment.
 
 ## Responses API
 
@@ -67,6 +67,9 @@ from stopwise import load_prompt
 analyzer_prompt = load_prompt("analyzer")
 direct_chat_prompt = load_prompt("custom_instruction")
 compact_prompt = load_prompt("custom_instruction_compact")
+pre_optimization_snapshot = load_prompt("custom_instruction_current_snapshot")
 ```
 
-The direct-chat prompts are not middleware analyzer prompts: they answer normally and optionally append a human-readable nudge, without JSON.
+`custom_instruction_compact` remains a compatibility alias synchronized to the canonical direct-chat prompt. The frozen snapshot exists for the controlled `current_prompt` condition and should not replace the default prompt. Direct-chat prompts are not analyzer prompts: they answer normally and may add a human-readable nudge, without JSON.
+
+If the analyzer participates in an effectiveness experiment, use a separate `middleware` condition and record its additional calls, tokens, latency, failures, and estimated/provider cost. Do not mix those costs into the three primary prompt-only conditions.

@@ -55,12 +55,18 @@ def main() -> None:
     payload = {
         "status": "deterministic smoke validation only; not end-to-end effectiveness evidence",
         "experiment_id": config.experiment_id,
+        "conditions": ["baseline", "current_prompt", "minimal_prompt"],
         "raw_log": str(raw_path),
         "request_accounting": {
             "external_requests_executed": 0,
             "assistant_callback_invocations": assistant_invocations,
             "user_simulator_decisions": simulator_decisions,
             "estimated_requests_if_both_callbacks_are_remote": assistant_invocations + simulator_decisions,
+        },
+        "token_accounting": {
+            "source": "estimated_fixture",
+            "provider_reported_usage": False,
+            "warning": "Placeholder word-count estimates are not service token usage and must not be used for cost or effectiveness claims.",
         },
         "run_scores": [asdict(item) for item in scores],
         "condition_summary": aggregate(scores),

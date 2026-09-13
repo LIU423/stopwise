@@ -108,7 +108,7 @@ def test_controlled_scorer_tracks_quality_cost_and_acr():
         (ROOT / "eval/controlled/example_config.json").read_text(encoding="utf-8")
     ).model_copy(update={"replicates": 1})
     logs = run_paired_experiment(config, [task], DeterministicAssistantCallback())
-    log = next(item for item in logs if item.condition == "stopwise")
+    log = next(item for item in logs if item.condition == "minimal_prompt")
     result = score_episode(task, log)
     assert result.optimal_choice is True
     assert result.constraint_satisfied is True
@@ -123,7 +123,22 @@ def test_deployment_assets_exist_and_are_nonempty():
         ROOT / "prompts/analyzer_system.md",
         ROOT / "prompts/custom_instruction.md",
         ROOT / "prompts/custom_instruction_compact.md",
+        ROOT / "prompts/custom_instruction_current_snapshot.md",
         ROOT / "skills/stopwise/SKILL.md",
         ROOT / "references.bib",
     ]
     assert all(path.read_text(encoding="utf-8").strip() for path in paths)
+
+
+def test_generated_prompt_adapters_are_synced_and_skill_is_self_contained():
+    sync = runpy.run_path(str(ROOT / "tools/sync_policy_assets.py"))
+    expected = sync["rendered_assets"]()
+    assert all(path.read_text(encoding="utf-8") == content for path, content in expected.items())
+
+    canonical = (ROOT / "prompts/custom_instruction.md").read_text(encoding="utf-8")
+    compact = (ROOT / "prompts/custom_instruction_compact.md").read_text(encoding="utf-8")
+    skill = (ROOT / "skills/stopwise/SKILL.md").read_text(encoding="utf-8")
+    assert compact == canonical
+    assert canonical.strip() in skill
+    assert "../" not in skill
+    assert "all multi-turn" not in skill.lower()
